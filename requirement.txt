@@ -1,0 +1,24 @@
+# PyTorch + CUDA 12.6
+torch==2.7.1+cu126
+torchvision==0.22.1+cu126
+torchaudio==2.7.1+cu126
+--extra-index-url https://download.pytorch.org/whl/cu126
+
+# PyG (PyTorch Geometric) and dependencies
+pyg-lib
+torch-geometric
+torch-scatter
+torch-sparse
+torch-cluster
+torch-spline-conv
+-f https://data.pyg.org/whl/torch-2.7.1+cu126.html
+
+# Other packages
+pykan
+mamba-ssm[causal-conv1d] --no-build-isolation
+tqdm
+pandas
+numpy
+tabulate
+matplotlib
+seaborn

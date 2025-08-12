@@ -186,7 +186,11 @@ class DynamicTemporalFeatures(nn.Module):
             features.append(time_diff_feats)
         
         # Periodic features for capturing cycles
-        expanded_time = timestamps.unsqueeze(-1) * self.periodic_freqs.unsqueeze(0)
+        if len(timestamps.shape) == 1:
+            expanded_time = timestamps.unsqueeze(-1) * self.periodic_freqs.unsqueeze(0)
+        else:
+            expanded_time = timestamps.unsqueeze(-1) * self.periodic_freqs.unsqueeze(0).unsqueeze(0)
+            
         periodic_feats = torch.cat([
             torch.sin(expanded_time), 
             torch.cos(expanded_time)
@@ -194,7 +198,14 @@ class DynamicTemporalFeatures(nn.Module):
         features.append(periodic_feats)
         
         if features:
-            return torch.cat(features, dim=-1)
+            combined = torch.cat(features, dim=-1)
+            # Ensure output dimension matches expected feature_dim
+            if combined.size(-1) != self.feature_dim:
+                # Project to correct dimension
+                if not hasattr(self, 'output_projection'):
+                    self.output_projection = nn.Linear(combined.size(-1), self.feature_dim).to(combined.device)
+                combined = self.output_projection(combined)
+            return combined
         else:
             # Fallback to simple timestamp encoding
             return self.time_diff_encoder(timestamps.unsqueeze(-1))
@@ -212,15 +223,21 @@ class EnhancedLeTE_Adapter(LeTE_Adapter):
         dynamic_feature_dim: int = 32,
         **kwargs
     ):
+        # Ensure dynamic_feature_dim doesn't exceed total dim
+        if dynamic_features and dynamic_feature_dim >= dim:
+            dynamic_feature_dim = dim // 2
+            
         # Adjust core LeTE dimension to account for dynamic features
         core_dim = dim - dynamic_feature_dim if dynamic_features else dim
         super().__init__(dim=core_dim, **kwargs)
         
         self.total_dim = dim
         self.dynamic_features = dynamic_features
+        self.dynamic_feature_dim = dynamic_feature_dim
         
         if dynamic_features:
             self.dynamic_temporal = DynamicTemporalFeatures(dynamic_feature_dim)
+            # The fusion layer should expect core_dim + actual dynamic feature output dim
             self.feature_fusion = nn.Linear(core_dim + dynamic_feature_dim, dim)
         else:
             self.feature_fusion = nn.Identity()

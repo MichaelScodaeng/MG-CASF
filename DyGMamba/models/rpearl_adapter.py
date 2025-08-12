@@ -24,8 +24,13 @@ try:
     from torch_geometric.utils import get_laplacian, to_dense_adj
     from torch_geometric.data import Data
     PEARL_AVAILABLE = True
-except ImportError:
-    print("Warning: R-PEARL modules not found. Using fallback implementation.")
+except ImportError as e:
+    print(f"Warning: R-PEARL modules not found. Using fallback implementation. Error: {e}")
+    # Fallback Data class for testing
+    class Data:
+        def __init__(self, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
     PEARL_AVAILABLE = False
 
 

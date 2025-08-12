@@ -206,11 +206,24 @@ class CliffordSpatiotemporalFusion(nn.Module):
         spatial_vec = self.dropout_layer(spatial_vec)
         temporal_vec = self.dropout_layer(temporal_vec)
             
-        # Stage 2: Core Clifford Algebra Operation - Compute Pure Bivector
+        # Stage 2: Fusion based on selected method
+        if self.fusion_method == 'clifford':
+            fused_embedding = self._clifford_fusion(spatial_vec, temporal_vec)
+        elif self.fusion_method == 'weighted':
+            fused_embedding = self._weighted_fusion(spatial_vec, temporal_vec)
+        elif self.fusion_method == 'concat_mlp':
+            fused_embedding = self._concat_mlp_fusion(spatial_vec, temporal_vec)
+        else:
+            raise ValueError(f"Unknown fusion method: {self.fusion_method}")
+            
+        return fused_embedding
+    
+    def _clifford_fusion(self, spatial_vec: torch.Tensor, temporal_vec: torch.Tensor) -> torch.Tensor:
+        """Perform Clifford algebra fusion using bivector computation."""
+        # Core Clifford Algebra Operation - Compute Pure Bivector
         # Since spatial and temporal basis vectors are orthogonal:
         # S * T = S · T + S ∧ T = 0 + S ∧ T = S ∧ T
         # The wedge product coefficients are computed as outer product
-        bivector_matrix = torch.outer(spatial_vec.view(-1), temporal_vec.view(-1))
         
         # Handle batch processing correctly
         if spatial_vec.dim() == 2:  # batch processing
@@ -224,13 +237,139 @@ class CliffordSpatiotemporalFusion(nn.Module):
         else:  # single sample
             bivector_coeffs = torch.outer(spatial_vec, temporal_vec).flatten().unsqueeze(0)
             
-        # Stage 3: Final projection to desired output dimension
+        # Final projection to desired output dimension
         fused_embedding = self.output_projection(bivector_coeffs)
         
         # Apply layer normalization
         fused_embedding = self.layer_norm(fused_embedding)
         
         return fused_embedding
+    
+    def _weighted_fusion(self, spatial_vec: torch.Tensor, temporal_vec: torch.Tensor) -> torch.Tensor:
+        """Perform weighted fusion of spatial and temporal embeddings."""
+        # Project to common dimension if needed
+        spatial_common = self.spatial_common_proj(spatial_vec)
+        temporal_common = self.temporal_common_proj(temporal_vec)
+        
+        # Normalize weights to sum to 1
+        if hasattr(self, 'spatial_weight') and hasattr(self, 'temporal_weight'):
+            total_weight = torch.abs(self.spatial_weight) + torch.abs(self.temporal_weight)
+            spatial_weight_norm = torch.abs(self.spatial_weight) / (total_weight + 1e-8)
+            temporal_weight_norm = torch.abs(self.temporal_weight) / (total_weight + 1e-8)
+        else:
+            spatial_weight_norm = 0.5
+            temporal_weight_norm = 0.5
+        
+        # Weighted combination
+        weighted_embedding = (spatial_weight_norm * spatial_common + 
+                             temporal_weight_norm * temporal_common)
+        
+        # Final projection to output dimension
+        fused_embedding = self.output_projection(weighted_embedding)
+        
+        # Apply layer normalization
+        fused_embedding = self.layer_norm(fused_embedding)
+        
+        return fused_embedding
+    
+    def _concat_mlp_fusion(self, spatial_vec: torch.Tensor, temporal_vec: torch.Tensor) -> torch.Tensor:
+        """Perform concatenation + MLP fusion."""
+        # Concatenate spatial and temporal embeddings
+        concat_embedding = torch.cat([spatial_vec, temporal_vec], dim=-1)
+        
+        # Process through MLP
+        fused_embedding = self.mlp(concat_embedding)
+        
+        # Apply layer normalization
+        fused_embedding = self.layer_norm(fused_embedding)
+        
+        return fused_embedding
+    
+    def get_bivector_coefficients(
+        self,
+        spatial_embedding: torch.Tensor,
+        temporal_embedding: torch.Tensor
+    ) -> torch.Tensor:
+        """
+        Extract bivector coefficients for interpretability (Clifford method only).
+        
+        Args:
+            spatial_embedding: Spatial embeddings [batch_size, spatial_dim]
+            temporal_embedding: Temporal embeddings [batch_size, temporal_dim]
+            
+        Returns:
+            torch.Tensor: Bivector coefficients [batch_size, spatial_dim * temporal_dim]
+        """
+        if self.fusion_method != 'clifford':
+            raise ValueError("Bivector coefficients only available for Clifford fusion method")
+            
+        with torch.no_grad():
+            # Project to target dimensions
+            if self.spatial_projection is not None:
+                spatial_vec = self.spatial_projection(spatial_embedding)
+            else:
+                spatial_vec = spatial_embedding
+                
+            if self.temporal_projection is not None:
+                temporal_vec = self.temporal_projection(temporal_embedding)
+            else:
+                temporal_vec = temporal_embedding
+                
+            # Compute bivector coefficients
+            if spatial_vec.dim() == 2:  # batch processing
+                batch_size = spatial_vec.size(0)
+                bivector_coeffs = []
+                for i in range(batch_size):
+                    outer_prod = torch.outer(spatial_vec[i], temporal_vec[i])
+                    bivector_coeffs.append(outer_prod.flatten())
+                bivector_coeffs = torch.stack(bivector_coeffs, dim=0)
+            else:  # single sample
+                bivector_coeffs = torch.outer(spatial_vec, temporal_vec).flatten().unsqueeze(0)
+                
+        return bivector_coeffs
+    
+    def compute_interaction_matrix(
+        self,
+        spatial_embedding: torch.Tensor,
+        temporal_embedding: torch.Tensor
+    ) -> torch.Tensor:
+        """
+        Compute interaction matrix for interpretability (Clifford method only).
+        
+        Args:
+            spatial_embedding: Spatial embeddings [batch_size, spatial_dim]
+            temporal_embedding: Temporal embeddings [batch_size, temporal_dim]
+            
+        Returns:
+            torch.Tensor: Interaction matrices [batch_size, spatial_dim, temporal_dim]
+        """
+        if self.fusion_method != 'clifford':
+            raise ValueError("Interaction matrix only available for Clifford fusion method")
+            
+        with torch.no_grad():
+            # Project to target dimensions
+            if self.spatial_projection is not None:
+                spatial_vec = self.spatial_projection(spatial_embedding)
+            else:
+                spatial_vec = spatial_embedding
+                
+            if self.temporal_projection is not None:
+                temporal_vec = self.temporal_projection(temporal_embedding)
+            else:
+                temporal_vec = temporal_embedding
+                
+            # Compute interaction matrices (outer products)
+            if spatial_vec.dim() == 2:  # batch processing
+                batch_size = spatial_vec.size(0)
+                interaction_matrices = []
+                for i in range(batch_size):
+                    outer_prod = torch.outer(spatial_vec[i], temporal_vec[i])
+                    interaction_matrices.append(outer_prod)
+                interaction_matrix = torch.stack(interaction_matrices, dim=0)
+            else:  # single sample
+                interaction_matrix = torch.outer(spatial_vec, temporal_vec).unsqueeze(0)
+                
+        return interaction_matrix
         
     def get_bivector_interpretation(
         self, 

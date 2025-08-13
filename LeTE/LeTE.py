@@ -97,6 +97,8 @@ class CombinedLeTE(nn.Module):
         Returns:
             torch.Tensor: Time encodings of shape (batch_size, seq_len, dim).
         """
+        param = next(self.parameters())
+        timestamps = timestamps.to(device=param.device, dtype=param.dtype)
         # Reshape timestamps to (batch_size, seq_len, 1)
         timestamps = timestamps.unsqueeze(dim=2)
 

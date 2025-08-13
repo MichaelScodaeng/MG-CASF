@@ -80,12 +80,14 @@ def create_model(config, node_raw_features, edge_raw_features, neighbor_sampler,
     logger.info("Creating DyGMamba with C-CASF integration...")
     
     model_config = config.get_model_config()
+    ccasf_config = config.get_ccasf_config()
     
     try:
         model = DyGMamba_CCASF(
             node_raw_features=node_raw_features,
             edge_raw_features=edge_raw_features, 
             neighbor_sampler=neighbor_sampler,
+            ccasf_config=ccasf_config,  # Pass C-CASF fusion config separately
             **model_config
         )
         
@@ -155,8 +157,21 @@ def train_epoch(model, train_data, optimizer, criterion, config, logger):
         batch_timestamps = train_data.node_interact_times[batch_idx:end_idx]
         
         try:
-            # Forward pass
-            src_embeddings, dst_embeddings = model(batch_src_nodes, batch_dst_nodes, batch_timestamps)
+            # Forward pass using DyGMamba's API
+            if hasattr(model, 'compute_src_dst_node_temporal_embeddings'):
+                # DyGMamba returns 3 values: src_embeddings, dst_embeddings, time_diff_emb
+                result = model.compute_src_dst_node_temporal_embeddings(
+                    src_node_ids=batch_src_nodes,
+                    dst_node_ids=batch_dst_nodes, 
+                    node_interact_times=batch_timestamps
+                )
+                if len(result) == 3:
+                    src_embeddings, dst_embeddings, time_diff_emb = result
+                else:
+                    src_embeddings, dst_embeddings = result
+            else:
+                # Fallback for other models that might have forward method
+                src_embeddings, dst_embeddings = model(batch_src_nodes, batch_dst_nodes, batch_timestamps)
             
             # Compute loss (simplified - you'd use actual link prediction loss)
             # This is just a placeholder - replace with actual DyGMamba loss computation
@@ -193,17 +208,54 @@ def evaluate_model(model, eval_data, config, logger, split_name="validation"):
             batch_timestamps = eval_data.node_interact_times[batch_idx:end_idx]
             
             try:
-                # Forward pass
-                src_embeddings, dst_embeddings = model(batch_src_nodes, batch_dst_nodes, batch_timestamps)
+                # Forward pass using DyGMamba's API
+                if hasattr(model, 'compute_src_dst_node_temporal_embeddings'):
+                    # DyGMamba returns 3 values: src_embeddings, dst_embeddings, time_diff_emb
+                    result = model.compute_src_dst_node_temporal_embeddings(
+                        src_node_ids=batch_src_nodes,
+                        dst_node_ids=batch_dst_nodes,
+                        node_interact_times=batch_timestamps
+                    )
+                    if len(result) == 3:
+                        src_embeddings, dst_embeddings, time_diff_emb = result
+                    else:
+                        src_embeddings, dst_embeddings = result
+                    
+                    # Generate negative samples and compute scores
+                    # Sample valid node IDs from the neighbor sampler domain (training graph)
+                    try:
+                        max_node_id = len(model.neighbor_sampler.nodes_neighbor_times) - 1
+                        neg_dst_nodes = np.random.randint(0, max_node_id + 1, size=len(batch_dst_nodes), dtype=np.int64)
+                    except Exception:
+                        # Fallback: sample from observed dst node ids
+                        unique_dst_nodes = np.unique(eval_data.dst_node_ids)
+                        neg_dst_nodes = np.random.choice(unique_dst_nodes, size=len(batch_dst_nodes), replace=True)
+                    
+                    neg_result = model.compute_src_dst_node_temporal_embeddings(
+                        src_node_ids=batch_src_nodes,
+                        dst_node_ids=neg_dst_nodes,
+                        node_interact_times=batch_timestamps
+                    )
+                    if len(neg_result) == 3:
+                        neg_src_embeddings, neg_dst_embeddings, neg_time_diff_emb = neg_result
+                    else:
+                        neg_src_embeddings, neg_dst_embeddings = neg_result
+                else:
+                    # Fallback for other models
+                    src_embeddings, dst_embeddings = model(batch_src_nodes, batch_dst_nodes, batch_timestamps)
+                    try:
+                        max_node_id = len(model.neighbor_sampler.nodes_neighbor_times) - 1
+                        neg_dst_nodes = np.random.randint(0, max_node_id + 1, size=len(batch_dst_nodes), dtype=np.int64)
+                    except Exception:
+                        unique_dst_nodes = np.unique(eval_data.dst_node_ids)
+                        neg_dst_nodes = np.random.choice(unique_dst_nodes, size=len(batch_dst_nodes), replace=True)
+                    neg_src_embeddings, neg_dst_embeddings = model(batch_src_nodes, neg_dst_nodes, batch_timestamps)
                 
                 # Compute positive scores
                 pos_scores = torch.sum(src_embeddings * dst_embeddings, dim=1)
                 all_pos_scores.extend(pos_scores.cpu().numpy())
                 
-                # Generate negative samples and compute scores (simplified)
-                # In practice, you'd use proper negative sampling from DyGMamba
-                neg_dst_nodes = np.random.choice(len(eval_data.dst_node_ids), size=len(batch_dst_nodes), replace=True)
-                neg_src_embeddings, neg_dst_embeddings = model(batch_src_nodes, neg_dst_nodes, batch_timestamps)
+                # Compute negative scores
                 neg_scores = torch.sum(neg_src_embeddings * neg_dst_embeddings, dim=1)
                 all_neg_scores.extend(neg_scores.cpu().numpy())
                 

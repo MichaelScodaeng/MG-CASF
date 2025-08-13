@@ -23,7 +23,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, Any
 
 
 class CliffordSpatiotemporalFusion(nn.Module):
@@ -468,13 +468,16 @@ class STAMPEDEFramework(nn.Module):
         temporal_dim: int = 64,
         output_dim: int = 128,
         dropout: float = 0.1,
-        device: str = 'cpu'
+        device: str = 'cpu',
+        # New: pass fusion-layer specific kwargs (e.g., fusion_method, weighted options, MLP sizes)
+        fusion_kwargs: Optional[Dict[str, Any]] = None,
     ):
         super(STAMPEDEFramework, self).__init__()
         
         self.spatial_encoder = spatial_encoder
         self.temporal_encoder = temporal_encoder
         self.device = device
+        self.fusion_kwargs = fusion_kwargs or {}
         
         # Move encoders to device explicitly
         try:
@@ -500,14 +503,16 @@ class STAMPEDEFramework(nn.Module):
             input_spatial_dim=spatial_input_dim,
             input_temporal_dim=temporal_input_dim,
             dropout=dropout,
-            device=device
+            device=device,
+            # forward all fusion-specific parameters
+            **self.fusion_kwargs,
         )
         # Ensure fusion layer is on the same device
         try:
             self.ccasf_layer.to(self.device)
         except Exception:
             pass
-    
+
     def forward(
         self,
         graph_data,

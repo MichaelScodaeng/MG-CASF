@@ -9,13 +9,14 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import Dict, Any
 
 from models.modules import TimeEncoder
 from models.CCASF import CliffordSpatiotemporalFusion, STAMPEDEFramework
 from models.lete_adapter import EnhancedLeTE_Adapter
 from models.rpearl_adapter import RPEARLAdapter, SimpleGraphSpatialEncoder
 from utils.utils import NeighborSampler
-
+import logging
 # Conditional import of Mamba to handle GLIBC compatibility issues
 try:
     from mamba_ssm import Mamba
@@ -69,7 +70,9 @@ class DyGMamba_CCASF(nn.Module):
                  lete_layer_norm: bool = True,
                  lete_scale: bool = True,
                  # Device
-                 device: str = 'cpu'):
+                 device: str = 'cuda',
+                 # C-CASF fusion config (separate from model config)
+                 ccasf_config: Dict[str, Any] = None):
         """
         Enhanced DyGMamba with C-CASF integration.
         
@@ -80,6 +83,7 @@ class DyGMamba_CCASF(nn.Module):
             ccasf_output_dim: Output dimension of C-CASF (default: channel_embedding_dim)
             use_rpearl: Whether to use R-PEARL for spatial encoding
             use_enhanced_lete: Whether to use enhanced LeTE with dynamic features
+            ccasf_config: Configuration dict for C-CASF fusion layer parameters
         """
         super(DyGMamba_CCASF, self).__init__()
 
@@ -90,6 +94,7 @@ class DyGMamba_CCASF(nn.Module):
         self.ccasf_output_dim = ccasf_output_dim or channel_embedding_dim
         self.use_rpearl = use_rpearl
         self.use_enhanced_lete = use_enhanced_lete
+        self.ccasf_config = ccasf_config or {}
 
         # Original DyGMamba setup
         self.node_raw_features = torch.from_numpy(node_raw_features.astype(np.float32)).to(device)
@@ -132,8 +137,8 @@ class DyGMamba_CCASF(nn.Module):
                     mlp_hidden=64,
                     device=self.device
                 )
-            except:
-                # Fallback to simple encoder
+            except Exception as e:
+                logging.exception("R-PEARL init failed; falling back to SimpleGraphSpatialEncoder")
                 print("Warning: R-PEARL not available, using simple spatial encoder")
                 self.spatial_encoder = SimpleGraphSpatialEncoder(
                     output_dim=self.spatial_dim
@@ -161,6 +166,10 @@ class DyGMamba_CCASF(nn.Module):
             )
             
         # Initialize STAMPEDE framework (orchestrates everything)
+        # Filter fusion-specific kwargs
+        fusion_keys = {'fusion_method', 'weighted_fusion_learnable', 'mlp_hidden_dim', 'mlp_num_layers'}
+        fusion_kwargs = {k: v for k, v in self.ccasf_config.items() if k in fusion_keys}
+        
         self.stampede_framework = STAMPEDEFramework(
             spatial_encoder=self.spatial_encoder,
             temporal_encoder=self.temporal_encoder,
@@ -168,7 +177,8 @@ class DyGMamba_CCASF(nn.Module):
             temporal_dim=self.temporal_dim,
             output_dim=self.ccasf_output_dim,
             dropout=self.dropout,
-            device=self.device
+            device=self.device,
+            fusion_kwargs=fusion_kwargs
         ).to(self.device)  # Ensure the entire framework is on the correct device
 
     def _init_dygmamba_components(self):

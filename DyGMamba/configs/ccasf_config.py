@@ -196,10 +196,6 @@ class CCASFConfig:
             'spatial_dim': self.spatial_dim,
             'temporal_dim': self.temporal_dim,
             'ccasf_output_dim': self.ccasf_output_dim,
-            'fusion_method': self.fusion_method,
-            'weighted_fusion_learnable': self.weighted_fusion_learnable,
-            'mlp_hidden_dim': self.mlp_hidden_dim,
-            'mlp_num_layers': self.mlp_num_layers,
             'use_rpearl': self.use_rpearl,
             'use_enhanced_lete': self.use_enhanced_lete,
             'rpearl_k': self.rpearl_k,
@@ -218,6 +214,19 @@ class CCASFConfig:
             'max_input_sequence_length': self.max_input_sequence_length,
             'max_interaction_times': self.max_interaction_times,
             'device': self.device
+        }
+        
+    def get_ccasf_config(self) -> Dict[str, Any]:
+        """Get C-CASF fusion-specific configuration."""
+        return {
+            'spatial_dim': self.spatial_dim,
+            'temporal_dim': self.temporal_dim,
+            'output_dim': self.ccasf_output_dim,
+            'fusion_method': self.fusion_method,
+            'weighted_fusion_learnable': self.weighted_fusion_learnable,
+            'mlp_hidden_dim': self.mlp_hidden_dim,
+            'mlp_num_layers': self.mlp_num_layers,
+            'dropout': self.dropout
         }
     
     def get_training_config(self) -> Dict[str, Any]:

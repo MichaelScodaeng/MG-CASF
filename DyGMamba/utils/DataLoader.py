@@ -2,6 +2,8 @@ from torch.utils.data import Dataset, DataLoader
 import numpy as np
 import random
 import pandas as pd
+from pathlib import Path
+import os
 
 
 class CustomizedDataset(Dataset):
@@ -68,6 +70,23 @@ class Data:
         for i, time_id in enumerate(sorted(self.uni_time_ids)):
             self.time_to_int_map[time_id] = i+1
 
+
+def _resolve_data_root():
+    """Resolve processed_data root robustly whether running from repo root or DyGMamba folder."""
+    this_file = Path(__file__).resolve()
+    dygmamba_dir = this_file.parents[1]   # .../GLCE/DyGMamba
+    repo_root = dygmamba_dir.parent       # .../GLCE
+    candidates = [
+        dygmamba_dir / 'processed_data',  # legacy expectation
+        repo_root / 'processed_data'      # workspace layout
+    ]
+    for c in candidates:
+        if c.exists():
+            return str(c)
+    # fallback to CWD
+    return str(Path.cwd() / 'processed_data')
+
+
 def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: float):
     """
     generate data for link prediction task (inductive & transductive settings)
@@ -77,10 +96,10 @@ def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: fl
     :return: node_raw_features, edge_raw_features, (np.ndarray),
             full_data, train_data, val_data, test_data, new_node_val_data, new_node_test_data, (Data object)
     """
-    # Load data and train val test split
-    graph_df = pd.read_csv('./processed_data/{}/ml_{}.csv'.format(dataset_name, dataset_name))
-    edge_raw_features = np.load('./processed_data/{}/ml_{}.npy'.format(dataset_name, dataset_name))
-    node_raw_features = np.load('./processed_data/{}/ml_{}_node.npy'.format(dataset_name, dataset_name))
+    data_root = _resolve_data_root()
+    graph_df = pd.read_csv(os.path.join(data_root, f'{dataset_name}', f'ml_{dataset_name}.csv'))
+    edge_raw_features = np.load(os.path.join(data_root, f'{dataset_name}', f'ml_{dataset_name}.npy'))
+    node_raw_features = np.load(os.path.join(data_root, f'{dataset_name}', f'ml_{dataset_name}_node.npy'))
 
     NODE_FEAT_DIM = EDGE_FEAT_DIM = 172
     assert NODE_FEAT_DIM >= node_raw_features.shape[1], f'Node feature dimension in dataset {dataset_name} is bigger than {NODE_FEAT_DIM}!'
@@ -116,7 +135,11 @@ def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: fl
     # compute nodes which appear at test time
     test_node_set = set(src_node_ids[node_interact_times > val_time]).union(set(dst_node_ids[node_interact_times > val_time]))
     # sample nodes which we keep as new nodes (to test inductiveness), so then we have to remove all their edges from training
-    new_test_node_set = set(random.sample(test_node_set, int(0.1 * num_total_unique_node_ids)))
+    # Robust sampling: convert to a sorted list and cap k to the population size
+    desired_k = int(0.1 * num_total_unique_node_ids)
+    pop_list = sorted(test_node_set)
+    k = min(desired_k, len(pop_list))
+    new_test_node_set = set(random.sample(pop_list, k)) if k > 0 else set()
 
     # mask for each source and destination to denote whether they are new test nodes
     new_test_source_mask = graph_df.u.map(lambda x: x in new_test_node_set).values
@@ -188,10 +211,10 @@ def get_node_classification_data(dataset_name: str, val_ratio: float, test_ratio
     :return: node_raw_features, edge_raw_features, (np.ndarray),
             full_data, train_data, val_data, test_data, (Data object)
     """
-    # Load data and train val test split
-    graph_df = pd.read_csv('./processed_data/{}/ml_{}.csv'.format(dataset_name, dataset_name))
-    edge_raw_features = np.load('./processed_data/{}/ml_{}.npy'.format(dataset_name, dataset_name))
-    node_raw_features = np.load('./processed_data/{}/ml_{}_node.npy'.format(dataset_name, dataset_name))
+    data_root = _resolve_data_root()
+    graph_df = pd.read_csv(os.path.join(data_root, f'{dataset_name}', f'ml_{dataset_name}.csv'))
+    edge_raw_features = np.load(os.path.join(data_root, f'{dataset_name}', f'ml_{dataset_name}.npy'))
+    node_raw_features = np.load(os.path.join(data_root, f'{dataset_name}', f'ml_{dataset_name}_node.npy'))
 
     NODE_FEAT_DIM = EDGE_FEAT_DIM = 172
     assert NODE_FEAT_DIM >= node_raw_features.shape[1], f'Node feature dimension in dataset {dataset_name} is bigger than {NODE_FEAT_DIM}!'
@@ -215,9 +238,6 @@ def get_node_classification_data(dataset_name: str, val_ratio: float, test_ratio
     edge_ids = graph_df.idx.values.astype(np.longlong)
     labels = graph_df.label.values
 
-    # The setting of seed follows previous works
-    random.seed(2020)
-
     train_mask = node_interact_times <= val_time
     val_mask = np.logical_and(node_interact_times <= test_time, node_interact_times > val_time)
     test_mask = node_interact_times > test_time
@@ -232,3 +252,17 @@ def get_node_classification_data(dataset_name: str, val_ratio: float, test_ratio
                      node_interact_times=node_interact_times[test_mask], edge_ids=edge_ids[test_mask], labels=labels[test_mask])
 
     return node_raw_features, edge_raw_features, full_data, train_data, val_data, test_data
+
+
+def get_data_loader(data_name: str,
+                    different_new_nodes_between_val_and_test: bool = True,
+                    randomize_features: bool = False,
+                    val_ratio: float = 0.15,
+                    test_ratio: float = 0.15):
+    """
+    Compatibility wrapper used by CCASF training script.
+    Returns the same tuple as get_link_prediction_data.
+    """
+    # Note: different_new_nodes_between_val_and_test and randomize_features are accepted for API compatibility.
+    # Current loader follows the standard split used in get_link_prediction_data.
+    return get_link_prediction_data(dataset_name=data_name, val_ratio=val_ratio, test_ratio=test_ratio)

@@ -26,11 +26,12 @@ from configs.ccasf_config import get_config, EXPERIMENT_CONFIGS
 from models.DyGMamba_CCASF import DyGMamba_CCASF
 from utils.DataLoader import get_data_loader  
 from utils.EarlyStopping import EarlyStopping
-from utils.load_configs import load_link_prediction_configs
-from utils.utils import set_random_seed, convert_to_gpu, get_parameter_sizes
+from utils.load_configs import load_link_prediction_best_configs
+from utils.utils import set_random_seed, convert_to_gpu, get_parameter_sizes, get_neighbor_sampler
 from utils.metrics import get_link_prediction_metrics
-
-warnings.filterwarnings('ignore')
+import faulthandler
+faulthandler.enable()
+warnings.filterwarnings('default')
 
 
 def setup_logging(config):
@@ -109,8 +110,8 @@ def create_model(config, node_raw_features, edge_raw_features, neighbor_sampler,
         
         return model
         
-    except Exception as e:
-        logger.error(f"Error creating model: {str(e)}")
+    except Exception:
+        logger.exception("Error creating model")
         logger.info("Falling back to original DyGMamba...")
         
         # Fallback to original DyGMamba if C-CASF fails
@@ -169,9 +170,9 @@ def train_epoch(model, train_data, optimizer, criterion, config, logger):
             total_loss += loss.item()
             num_batches += 1
             
-        except Exception as e:
-            logger.warning(f"Error in batch {batch_idx}: {str(e)}")
-            continue
+        except Exception:
+            logger.exception(f"Error in batch {batch_idx}")
+            raise
     
     avg_loss = total_loss / max(num_batches, 1)
     return avg_loss
@@ -206,9 +207,9 @@ def evaluate_model(model, eval_data, config, logger, split_name="validation"):
                 neg_scores = torch.sum(neg_src_embeddings * neg_dst_embeddings, dim=1)
                 all_neg_scores.extend(neg_scores.cpu().numpy())
                 
-            except Exception as e:
-                logger.warning(f"Error in evaluation batch {batch_idx}: {str(e)}")
-                continue
+            except Exception:
+                logger.exception(f"Error in evaluation batch {batch_idx}")
+                raise
     
     # Compute metrics
     if len(all_pos_scores) > 0 and len(all_neg_scores) > 0:
@@ -237,10 +238,11 @@ def train_model(config, logger):
     # Load data
     node_raw_features, edge_raw_features, full_data, train_data, val_data, test_data, new_node_val_data, new_node_test_data = load_data(config, logger)
     
-    # Create neighbor sampler
-    from utils.utils import NeighborSampler
-    neighbor_sampler = NeighborSampler(adj_list=[[] for _ in range(node_raw_features.shape[0])], 
-                                     num_neighbors=[config.num_neighbors] * 2)
+    # Create neighbor sampler using project utility (uniform by default)
+    neighbor_sampler = get_neighbor_sampler(data=train_data,
+                                            sample_neighbor_strategy='uniform',
+                                            time_scaling_factor=0.0,
+                                            seed=0)
     
     # Create model
     model = create_model(config, node_raw_features, edge_raw_features, neighbor_sampler, logger)
@@ -251,8 +253,15 @@ def train_model(config, logger):
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=config.patience//2, factor=0.5, verbose=True)
     criterion = nn.BCEWithLogitsLoss()
     
-    # Early stopping
-    early_stopping = EarlyStopping(patience=config.patience, save_model=config.save_model)
+    # Early stopping (use project EarlyStopping API)
+    save_model_folder = os.path.join(config.checkpoint_dir, config.dataset_name, 'ccasf')
+    os.makedirs(save_model_folder, exist_ok=True)
+    save_model_name = f"DyGMamba_CCASF_seed{config.seed}"
+    early_stopping = EarlyStopping(patience=config.patience,
+                                   save_model_folder=save_model_folder,
+                                   save_model_name=save_model_name,
+                                   logger=logger,
+                                   model_name='DyGMamba_CCASF')
     
     # Training loop
     best_val_metric = 0.0
@@ -274,6 +283,9 @@ def train_model(config, logger):
             # Early stopping check
             val_metric = val_ap  # Use AP as primary metric
             
+            # Step early stopping with required tuple format
+            _ = early_stopping.step([('average_precision', val_metric, True)], model)
+            
             if val_metric > best_val_metric:
                 best_val_metric = val_metric
                 
@@ -290,8 +302,7 @@ def train_model(config, logger):
                     }, checkpoint_path)
                     logger.info(f"Saved best model to {checkpoint_path}")
             
-            early_stopping.check_early_stopping(val_metric)
-            
+            # If early stopping triggered, break
             if early_stopping.early_stop:
                 logger.info(f"Early stopping triggered at epoch {epoch}")
                 break
@@ -372,10 +383,9 @@ def main():
             results, model = train_model(config, logger)
             results['run'] = run
             all_results.append(results)
-            
-        except Exception as e:
-            logger.error(f"Error in run {run}: {str(e)}")
-            continue
+        except Exception:
+            logger.exception(f"Error in run {run}")
+            raise
     
     # Aggregate results
     if all_results:

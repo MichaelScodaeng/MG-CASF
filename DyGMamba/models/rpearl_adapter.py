@@ -13,16 +13,19 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-
+#print(sys.path)
+import os
+#print(os.listdir('/home/s2516027/GLCE/Pearl_PE/PEARL/src/'))
 # Add PEARL to path
-sys.path.append('/home/s2516027/GLCE/Pearl_PE/PEARL/src')
-
+#sys.path.append('/home/s2516027/GLCE/Pearl_PE/PEARL/src/')
+from torch_geometric.utils import get_laplacian, to_dense_adj
+from torch_geometric.data import Data
+sys.path.append('/home/s2516027/GLCE/Pearl_PE/PEARL')
 try:
-    from pe import PEARLPositionalEncoder, GetSampleAggregator, GINSampleAggregator
-    from mlp import MLP
-    from schema import Schema
-    from torch_geometric.utils import get_laplacian, to_dense_adj
-    from torch_geometric.data import Data
+    from src.pe import PEARLPositionalEncoder, GetSampleAggregator, GINSampleAggregator
+    from src.mlp import MLP
+    from src.schema import Schema
+    
     PEARL_AVAILABLE = True
 except ImportError as e:
     print(f"Warning: R-PEARL modules not found. Using fallback implementation. Error: {e}")
@@ -305,13 +308,31 @@ class SimpleGraphSpatialEncoder(nn.Module):
         
         device = edge_index.device
         
-        # Node ID embeddings
-        node_range = torch.arange(num_nodes, device=device)
-        node_embeddings = self.node_encoder(node_range % self.max_nodes)
+        # Ensure module parameters are on the same device as inputs
+        try:
+            current_device = next(self.parameters()).device
+        except StopIteration:
+            current_device = device
+        if current_device != device:
+            self.to(device)
         
-        # Degree features
+        # Re-fetch module device to be sure
+        module_device = next(self.parameters()).device if any(True for _ in self.parameters()) else device
+        
+        # Node ID embeddings - ensure consistent device and dtype
+        node_range = torch.arange(num_nodes, device=module_device, dtype=torch.long)
+        node_ids_mod = (node_range % self.max_nodes)
+        # Explicitly align index tensor device with embedding weight device
+        if isinstance(self.node_encoder, nn.Sequential) and isinstance(self.node_encoder[0], nn.Embedding):
+            emb_device = self.node_encoder[0].weight.device
+            if node_ids_mod.device != emb_device:
+                node_ids_mod = node_ids_mod.to(emb_device)
+        node_embeddings = self.node_encoder(node_ids_mod)
+        
+        # Degree features (compute on module_device)
         row, col = edge_index
-        degree = torch.bincount(row, minlength=num_nodes).float()
+        row = row.to(module_device)
+        degree = torch.bincount(row, minlength=num_nodes).float().to(module_device)
         degree_embeddings = self.degree_encoder(degree.unsqueeze(-1))
         
         # Combine features
@@ -320,6 +341,9 @@ class SimpleGraphSpatialEncoder(nn.Module):
         
         # Select specific nodes if requested
         if node_ids is not None:
+            # Ensure node_ids on same device for indexing
+            if isinstance(node_ids, torch.Tensor) and node_ids.device != spatial_embeddings.device:
+                node_ids = node_ids.to(spatial_embeddings.device)
             spatial_embeddings = spatial_embeddings[node_ids]
             
         return spatial_embeddings

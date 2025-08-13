@@ -5,7 +5,28 @@ import torch.nn.functional as F
 
 from models.modules import TimeEncoder
 from utils.utils import NeighborSampler
-from mamba_ssm import Mamba
+
+# Conditional import of Mamba to handle GLIBC compatibility issues
+try:
+    from mamba_ssm import Mamba
+    MAMBA_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: mamba_ssm not available: {e}. Using fallback implementation.")
+    MAMBA_AVAILABLE = False
+    
+    # Fallback Mamba implementation using standard PyTorch layers
+    class Mamba(nn.Module):
+        def __init__(self, d_model, **kwargs):
+            super().__init__()
+            self.d_model = d_model
+            # Use a simple LSTM as fallback for selective scan
+            self.lstm = nn.LSTM(d_model, d_model, batch_first=True)
+            self.norm = nn.LayerNorm(d_model)
+            
+        def forward(self, x):
+            # Simple fallback: use LSTM instead of selective scan
+            output, _ = self.lstm(x)
+            return self.norm(output)
 
 
 class DyGMamba(nn.Module):

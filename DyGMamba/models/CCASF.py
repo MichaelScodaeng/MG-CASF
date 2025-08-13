@@ -183,25 +183,26 @@ class CliffordSpatiotemporalFusion(nn.Module):
     ) -> torch.Tensor:
         """
         Forward pass of the C-CASF layer.
-        
-        Args:
-            spatial_embedding: Spatial embeddings from R-PEARL [batch_size, spatial_dim]
-            temporal_embedding: Temporal embeddings from LeTE [batch_size, temporal_dim]
-            
-        Returns:
-            torch.Tensor: Fused spatiotemporal embeddings [batch_size, output_dim]
         """
+        # Align inputs to this module's device
+        try:
+            layer_device = next(self.parameters()).device
+        except StopIteration:
+            layer_device = self.device if isinstance(self.device, torch.device) else torch.device(self.device)
+        spatial_embedding = spatial_embedding.to(layer_device)
+        temporal_embedding = temporal_embedding.to(layer_device)
+        
         # Stage 1: Input projections to target dimensions
         if self.spatial_projection is not None:
             spatial_vec = self.spatial_projection(spatial_embedding)
         else:
             spatial_vec = spatial_embedding
-            
+        
         if self.temporal_projection is not None:
             temporal_vec = self.temporal_projection(temporal_embedding) 
         else:
             temporal_vec = temporal_embedding
-            
+        
         # Apply dropout to input vectors
         spatial_vec = self.dropout_layer(spatial_vec)
         temporal_vec = self.dropout_layer(temporal_vec)
@@ -215,7 +216,7 @@ class CliffordSpatiotemporalFusion(nn.Module):
             fused_embedding = self._concat_mlp_fusion(spatial_vec, temporal_vec)
         else:
             raise ValueError(f"Unknown fusion method: {self.fusion_method}")
-            
+        
         return fused_embedding
     
     def _clifford_fusion(self, spatial_vec: torch.Tensor, temporal_vec: torch.Tensor) -> torch.Tensor:
@@ -228,17 +229,30 @@ class CliffordSpatiotemporalFusion(nn.Module):
         # Handle batch processing correctly
         if spatial_vec.dim() == 2:  # batch processing
             batch_size = spatial_vec.size(0)
+            temporal_batch_size = temporal_vec.size(0)
+            
+            # Debug check for mismatched batch sizes
+            if batch_size != temporal_batch_size:
+                raise ValueError(f"Batch size mismatch: spatial {batch_size} vs temporal {temporal_batch_size}")
+            
+            # Ensure we don't exceed batch bounds
+            actual_batch_size = min(batch_size, temporal_batch_size)
+            
             # Compute outer product for each sample in batch
             bivector_coeffs = []
-            for i in range(batch_size):
+            for i in range(actual_batch_size):
                 outer_prod = torch.outer(spatial_vec[i], temporal_vec[i])
                 bivector_coeffs.append(outer_prod.flatten())
             bivector_coeffs = torch.stack(bivector_coeffs, dim=0)
         else:  # single sample
             bivector_coeffs = torch.outer(spatial_vec, temporal_vec).flatten().unsqueeze(0)
-            
+        
+        # NaN/Inf guard
+        bivector_coeffs = torch.nan_to_num(bivector_coeffs, nan=0.0, posinf=1e4, neginf=-1e4)
+        
         # Final projection to desired output dimension
         fused_embedding = self.output_projection(bivector_coeffs)
+        fused_embedding = torch.nan_to_num(fused_embedding, nan=0.0, posinf=1e4, neginf=-1e4)
         
         # Apply layer normalization
         fused_embedding = self.layer_norm(fused_embedding)
@@ -266,6 +280,7 @@ class CliffordSpatiotemporalFusion(nn.Module):
         
         # Final projection to output dimension
         fused_embedding = self.output_projection(weighted_embedding)
+        fused_embedding = torch.nan_to_num(fused_embedding, nan=0.0, posinf=1e4, neginf=-1e4)
         
         # Apply layer normalization
         fused_embedding = self.layer_norm(fused_embedding)
@@ -282,8 +297,21 @@ class CliffordSpatiotemporalFusion(nn.Module):
         
         # Apply layer normalization
         fused_embedding = self.layer_norm(fused_embedding)
+        fused_embedding = torch.nan_to_num(fused_embedding, nan=0.0, posinf=1e4, neginf=-1e4)
         
         return fused_embedding
+    
+    def get_fusion_weights(self):
+        """Return normalized fusion weights (only for weighted fusion)."""
+        if self.fusion_method != 'weighted':
+            return None
+        if not (hasattr(self, 'spatial_weight') and hasattr(self, 'temporal_weight')):
+            return None
+        with torch.no_grad():
+            total = torch.abs(self.spatial_weight) + torch.abs(self.temporal_weight) + 1e-8
+            sw = (torch.abs(self.spatial_weight) / total).item()
+            tw = (torch.abs(self.temporal_weight) / total).item()
+        return {'spatial_weight': sw, 'temporal_weight': tw}
     
     def get_bivector_coefficients(
         self,
@@ -434,8 +462,8 @@ class STAMPEDEFramework(nn.Module):
     
     def __init__(
         self,
-        spatial_encoder,      # R-PEARL instance
-        temporal_encoder,     # LeTE instance
+        spatial_encoder: nn.Module,
+        temporal_encoder: nn.Module,
         spatial_dim: int = 64,
         temporal_dim: int = 64,
         output_dim: int = 128,
@@ -447,6 +475,16 @@ class STAMPEDEFramework(nn.Module):
         self.spatial_encoder = spatial_encoder
         self.temporal_encoder = temporal_encoder
         self.device = device
+        
+        # Move encoders to device explicitly
+        try:
+            self.spatial_encoder.to(self.device)
+        except Exception:
+            pass
+        try:
+            self.temporal_encoder.to(self.device)
+        except Exception:
+            pass
         
         # Determine input dimensions from encoders
         spatial_input_dim = getattr(spatial_encoder, 'output_dim', None)
@@ -464,38 +502,52 @@ class STAMPEDEFramework(nn.Module):
             dropout=dropout,
             device=device
         )
-        
+        # Ensure fusion layer is on the same device
+        try:
+            self.ccasf_layer.to(self.device)
+        except Exception:
+            pass
+    
     def forward(
-        self, 
-        graph_data,           # For spatial encoding
-        timestamps: torch.Tensor,    # For temporal encoding  
-        node_ids: torch.Tensor = None,
-        last_timestamps: torch.Tensor = None,  # For dynamic temporal features
+        self,
+        graph_data,
+        timestamps: torch.Tensor,
+        node_ids: Optional[torch.Tensor] = None,
+        last_timestamps: Optional[torch.Tensor] = None,
         **kwargs
     ) -> torch.Tensor:
-        """
-        Forward pass through the complete STAMPEDE pipeline.
+        # Ensure inputs are on the correct device
+        if isinstance(graph_data, dict):
+            if 'edge_index' in graph_data and isinstance(graph_data['edge_index'], torch.Tensor):
+                graph_data['edge_index'] = graph_data['edge_index'].to(self.device)
+            if 'node_ids' in graph_data and isinstance(graph_data['node_ids'], torch.Tensor):
+                graph_data['node_ids'] = graph_data['node_ids'].to(self.device)
+        else:
+            try:
+                graph_data = graph_data.to(self.device)
+            except Exception:
+                pass
+        if isinstance(node_ids, torch.Tensor):
+            node_ids = node_ids.to(self.device)
+        timestamps = timestamps.to(self.device)
+        if last_timestamps is not None:
+            last_timestamps = last_timestamps.to(self.device)
         
-        Args:
-            graph_data: Input data for spatial encoder (R-PEARL)
-            timestamps: Timestamps for temporal encoder (LeTE)
-            node_ids: Node IDs if needed for spatial encoding
-            last_timestamps: Previous timestamps for temporal dynamics
-            
-        Returns:
-            torch.Tensor: Final spatiotemporal embeddings
-        """
         # Stage 1: Generate spatial embeddings
         if hasattr(self.spatial_encoder, 'get_embeddings'):
             spatial_embeddings = self.spatial_encoder.get_embeddings(graph_data, node_ids)
         else:
             spatial_embeddings = self.spatial_encoder(graph_data, node_ids)
-            
+        
         # Stage 2: Generate temporal embeddings  
         if hasattr(self.temporal_encoder, '__call__') and 'last_timestamps' in self.temporal_encoder.forward.__code__.co_varnames:
             temporal_embeddings = self.temporal_encoder(timestamps, last_timestamps)
         else:
             temporal_embeddings = self.temporal_encoder(timestamps)
+        
+        # Align embedding devices before fusion
+        spatial_embeddings = spatial_embeddings.to(self.device)
+        temporal_embeddings = temporal_embeddings.to(self.device)
         
         # Ensure embeddings are compatible shapes for fusion
         if spatial_embeddings.dim() == 3 and temporal_embeddings.dim() == 2:

@@ -38,7 +38,18 @@ class TimeEncoder(nn.Module):
 
         return output
 
+class FeedForwardNet(nn.Module):
+    def __init__(self, input_dim: int, hidden_dim: int, output_dim: int, dropout: float = 0.1):
+        super().__init__()
+        self.fc1 = nn.Linear(input_dim, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, output_dim)
+        self.act = nn.ReLU()
+        self.dropout = nn.Dropout(dropout)
 
+    def forward(self, x: torch.Tensor):
+        x = self.dropout(self.act(self.fc1(x)))
+        x = self.fc2(x)
+        return x
 class MergeLayer(nn.Module):
 
     def __init__(self, input_dim1: int, input_dim2: int, hidden_dim: int, output_dim: int):

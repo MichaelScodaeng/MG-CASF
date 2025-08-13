@@ -15,7 +15,28 @@ from models.CCASF import CliffordSpatiotemporalFusion, STAMPEDEFramework
 from models.lete_adapter import EnhancedLeTE_Adapter
 from models.rpearl_adapter import RPEARLAdapter, SimpleGraphSpatialEncoder
 from utils.utils import NeighborSampler
-from mamba_ssm import Mamba
+
+# Conditional import of Mamba to handle GLIBC compatibility issues
+try:
+    from mamba_ssm import Mamba
+    MAMBA_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: mamba_ssm not available: {e}. Using fallback implementation.")
+    MAMBA_AVAILABLE = False
+    
+    # Fallback Mamba implementation using standard PyTorch layers
+    class Mamba(nn.Module):
+        def __init__(self, d_model, **kwargs):
+            super().__init__()
+            self.d_model = d_model
+            # Use a simple LSTM as fallback for selective scan
+            self.lstm = nn.LSTM(d_model, d_model, batch_first=True)
+            self.norm = nn.LayerNorm(d_model)
+            
+        def forward(self, x):
+            # Simple fallback: use LSTM instead of selective scan
+            output, _ = self.lstm(x)
+            return self.norm(output)
 
 
 class DyGMamba_CCASF(nn.Module):
@@ -116,11 +137,11 @@ class DyGMamba_CCASF(nn.Module):
                 print("Warning: R-PEARL not available, using simple spatial encoder")
                 self.spatial_encoder = SimpleGraphSpatialEncoder(
                     output_dim=self.spatial_dim
-                )
+                ).to(self.device)
         else:
             self.spatial_encoder = SimpleGraphSpatialEncoder(
                 output_dim=self.spatial_dim
-            )
+            ).to(self.device)
             
         # Initialize temporal encoder (LeTE)
         if self.use_enhanced_lete:
@@ -148,13 +169,13 @@ class DyGMamba_CCASF(nn.Module):
             output_dim=self.ccasf_output_dim,
             dropout=self.dropout,
             device=self.device
-        )
+        ).to(self.device)  # Ensure the entire framework is on the correct device
 
     def _init_dygmamba_components(self):
         """Initialize the standard DyGMamba components."""
         
         # Neighbor co-occurrence feature encoder
-        from models.modules import NIFEncoder
+        from models.DyGMamba import NIFEncoder
         self.neighbor_co_occurrence_feat_dim = self.channel_embedding_dim
         self.neighbor_co_occurrence_encoder = NIFEncoder(nif_feat_dim=self.neighbor_co_occurrence_feat_dim, device=self.device)
 
@@ -237,12 +258,21 @@ class DyGMamba_CCASF(nn.Module):
         # Prepare data for spatial encoding
         # This is a simplified version - you might need to adapt based on your graph structure
         src_dst_node_ids = np.concatenate([src_node_ids, dst_node_ids])
+        all_timestamps = np.concatenate([node_interact_times, node_interact_times])  # Same timestamp for both src and dst
+        
         unique_node_ids, inverse_indices = np.unique(src_dst_node_ids, return_inverse=True)
+        
+        # Get timestamps for unique nodes (use first occurrence)
+        unique_timestamps = []
+        for unique_node in unique_node_ids:
+            first_idx = np.where(src_dst_node_ids == unique_node)[0][0]
+            unique_timestamps.append(all_timestamps[first_idx])
+        unique_timestamps = np.array(unique_timestamps)
         
         # Create graph data for spatial encoding (simplified - you may need more sophisticated approach)
         graph_data = {
             'node_ids': torch.from_numpy(unique_node_ids).to(self.device),
-            'timestamps': torch.from_numpy(node_interact_times).to(self.device),
+            'timestamps': torch.from_numpy(unique_timestamps).to(self.device),  # Use unique timestamps
             'cache_key': f"graph_{hash(tuple(unique_node_ids))}_{num_samples}"  # Simple caching
         }
         
@@ -264,7 +294,7 @@ class DyGMamba_CCASF(nn.Module):
         graph_data['num_nodes'] = num_unique_nodes
         
         # Generate spatiotemporal embeddings using STAMPEDE
-        timestamps = torch.from_numpy(node_interact_times).float().to(self.device)
+        timestamps = torch.from_numpy(unique_timestamps).float().to(self.device)
         
         # Get embeddings for all unique nodes
         node_embeddings = self.stampede_framework(graph_data, timestamps)

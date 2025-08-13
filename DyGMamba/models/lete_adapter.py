@@ -244,6 +244,10 @@ class EnhancedLeTE_Adapter(LeTE_Adapter):
     
     def forward(self, timestamps: torch.Tensor, last_timestamps: torch.Tensor = None) -> torch.Tensor:
         """Enhanced forward pass with dynamic temporal features."""
+        device = next(self.parameters()).device
+        timestamps = timestamps.to(device)
+        if last_timestamps is not None:
+            last_timestamps = last_timestamps.to(device)
         # Get core LeTE embeddings
         core_embeddings = super().forward(timestamps)
         

@@ -28,6 +28,9 @@ class CCASFConfig:
         self.spatial_dim = 64
         self.temporal_dim = 64
         self.ccasf_output_dim = 128  # Will be set to channel_embedding_dim if None
+        # Model input dimensions
+        self.node_feat_dim = 100   # Default, adjust as needed
+        self.edge_feat_dim = 100   # Default, adjust as needed
         
         # Fusion method parameters
         self.fusion_method = 'clifford'  # 'clifford', 'weighted', 'concat_mlp'
@@ -102,49 +105,63 @@ class CCASFConfig:
                 'channel_embedding_dim': 100,
                 'max_input_sequence_length': 64,
                 'learning_rate': 0.0001,
-                'batch_size': 200
+                'batch_size': 200,
+                'node_feat_dim': 172,      # Add this line
+                'edge_feat_dim': 172       # Add this line
             },
             'reddit': {
                 'time_feat_dim': 100,
                 'channel_embedding_dim': 100, 
                 'max_input_sequence_length': 32,
                 'learning_rate': 0.0001,
-                'batch_size': 600
+                'batch_size': 600,
+                'node_feat_dim': 172,      # Add this line
+                'edge_feat_dim': 172       # Add this line
             },
             'mooc': {
                 'time_feat_dim': 100,
                 'channel_embedding_dim': 100,
                 'max_input_sequence_length': 64,
                 'learning_rate': 0.0001,
-                'batch_size': 200
+                'batch_size': 200,
+                'node_feat_dim': 172,      # Add this line
+                'edge_feat_dim': 172       # Add this line
             },
             'lastfm': {
                 'time_feat_dim': 100,
                 'channel_embedding_dim': 100,
                 'max_input_sequence_length': 64,
                 'learning_rate': 0.0001,
-                'batch_size': 200
+                'batch_size': 200,
+                'node_feat_dim': 172,      # Add this line
+                'edge_feat_dim': 172       # Add this line
             },
             'enron': {
                 'time_feat_dim': 100,
                 'channel_embedding_dim': 100,
                 'max_input_sequence_length': 64,
                 'learning_rate': 0.0001,
-                'batch_size': 200
+                'batch_size': 200,
+                'node_feat_dim': 172,      # Add this line
+                'edge_feat_dim': 172       # Add this line
             },
             'Contacts': {
                 'time_feat_dim': 100,
                 'channel_embedding_dim': 100,
                 'max_input_sequence_length': 64,
                 'learning_rate': 0.0001,
-                'batch_size': 200
+                'batch_size': 200,
+                'node_feat_dim': 172,      # Add this line
+                'edge_feat_dim': 172       # Add this line
             },
             'Flights': {
                 'time_feat_dim': 100,
                 'channel_embedding_dim': 100,
                 'max_input_sequence_length': 64,
                 'learning_rate': 0.0001,
-                'batch_size': 200
+                'batch_size': 200,
+                'node_feat_dim': 172,      # Add this line
+                'edge_feat_dim': 172       # Add this line
             }
         }
         

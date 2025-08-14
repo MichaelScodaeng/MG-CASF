@@ -79,46 +79,49 @@ def load_data(config, logger):
 
 
 def create_model(config, node_raw_features, edge_raw_features, neighbor_sampler, logger):
-    """Create backbone + link predictor model; DyGMamba_CCASF by default, fallback to DyGMamba."""
-    logger.info("Creating DyGMamba with C-CASF integration...")
-
+    """Create backbone + link predictor model based on config.model_name."""
+    model_name = getattr(config, 'model_name', 'DyGMamba_CCASF')
     model_config = config.get_model_config()
-    ccasf_config = config.get_ccasf_config()
 
-    try:
-        backbone = DyGMamba_CCASF(
-            node_raw_features=node_raw_features,
-            edge_raw_features=edge_raw_features,
-            neighbor_sampler=neighbor_sampler,
-            ccasf_config=ccasf_config,
-            **model_config
-        )
-        # Use CCASF embedding dimension for link predictor
-        in_dim = getattr(backbone, 'ccasf_output_dim', node_raw_features.shape[1])
-        link_predictor = MergeLayer(input_dim1=in_dim, input_dim2=in_dim, hidden_dim=in_dim, output_dim=1)
-        model = nn.Sequential(backbone, link_predictor)
+    if model_name == 'DyGMamba_CCASF':
+        logger.info("Creating model: DyGMamba_CCASF")
+        ccasf_config = config.get_ccasf_config()
+        try:
+            backbone = DyGMamba_CCASF(
+                node_raw_features=node_raw_features,
+                edge_raw_features=edge_raw_features,
+                neighbor_sampler=neighbor_sampler,
+                ccasf_config=ccasf_config,
+                **model_config
+            )
+            in_dim = getattr(backbone, 'ccasf_output_dim', node_raw_features.shape[1])
+            link_predictor = MergeLayer(input_dim1=in_dim, input_dim2=in_dim, hidden_dim=in_dim, output_dim=1)
+            model = nn.Sequential(backbone, link_predictor)
 
-        total_params = get_parameter_sizes(model)
-        logger.info(f"Model created with {total_params} parameters")
+            total_params = get_parameter_sizes(model)
+            logger.info(f"Model created with {total_params} parameters")
 
-        if config.use_ccasf:
-            logger.info("C-CASF Configuration:")
-            logger.info(f"  - Spatial dimension: {config.spatial_dim}")
-            logger.info(f"  - Temporal dimension: {config.temporal_dim}")
-            logger.info(f"  - Output dimension: {getattr(backbone, 'ccasf_output_dim', config.ccasf_output_dim)}")
-            logger.info(f"  - Fusion method: {config.fusion_method}")
-            if config.fusion_method == 'weighted':
-                logger.info(f"  - Weighted fusion learnable: {config.weighted_fusion_learnable}")
-            elif config.fusion_method == 'concat_mlp':
-                logger.info(f"  - MLP hidden dim: {config.mlp_hidden_dim}")
-                logger.info(f"  - MLP num layers: {config.mlp_num_layers}")
-            logger.info(f"  - Using R-PEARL: {config.use_rpearl}")
-            logger.info(f"  - Using Enhanced LeTE: {config.use_enhanced_lete}")
+            if getattr(config, 'use_ccasf', True):
+                logger.info("C-CASF Configuration:")
+                logger.info(f"  - Spatial dimension: {config.spatial_dim}")
+                logger.info(f"  - Temporal dimension: {config.temporal_dim}")
+                logger.info(f"  - Output dimension: {getattr(backbone, 'ccasf_output_dim', getattr(config, 'ccasf_output_dim', in_dim))}")
+                logger.info(f"  - Fusion method: {config.fusion_method}")
+                if config.fusion_method == 'weighted':
+                    logger.info(f"  - Weighted fusion learnable: {config.weighted_fusion_learnable}")
+                elif config.fusion_method == 'concat_mlp':
+                    logger.info(f"  - MLP hidden dim: {config.mlp_hidden_dim}")
+                    logger.info(f"  - MLP num layers: {config.mlp_num_layers}")
+                logger.info(f"  - Using R-PEARL: {config.use_rpearl}")
+                logger.info(f"  - Using Enhanced LeTE: {config.use_enhanced_lete}")
 
-        return model
+            return model
+        except Exception:
+            logger.exception("Failed to create DyGMamba_CCASF; please verify config or choose --model_name DyGMamba")
+            raise
 
-    except Exception:
-        logger.exception("Error creating C-CASF backbone; falling back to original DyGMamba")
+    elif model_name == 'DyGMamba':
+        logger.info("Creating model: DyGMamba")
         backbone = DyGMamba(
             node_raw_features=node_raw_features,
             edge_raw_features=edge_raw_features,
@@ -138,8 +141,10 @@ def create_model(config, node_raw_features, edge_raw_features, neighbor_sampler,
         link_predictor = MergeLayerTD(input_dim1=in_dim, input_dim2=in_dim, input_dim3=in_dim, hidden_dim=in_dim, output_dim=1)
         model = nn.Sequential(backbone, link_predictor)
         total_params = get_parameter_sizes(model)
-        logger.info(f"Fallback model created with {total_params} parameters")
+        logger.info(f"Model created with {total_params} parameters")
         return model
+    else:
+        raise ValueError(f"Unsupported --model_name {model_name}. Supported: DyGMamba_CCASF, DyGMamba")
 
 
 def train_epoch(model, train_data, train_idx_data_loader, train_neg_sampler, optimizer, criterion, config, logger):
@@ -485,11 +490,14 @@ def main():
                       choices=list(EXPERIMENT_CONFIGS.keys()),
                       help='Experiment configuration type')
     parser.add_argument('--device', type=str, default=None, help='Device (cpu/cuda)')
+    parser.add_argument('--model_name', type=str, default='DyGMamba_CCASF',
+                      choices=['DyGMamba_CCASF', 'DyGMamba'],
+                      help='Backbone model to train')
     parser.add_argument('--num_runs', type=int, default=5, help='Number of runs')
     parser.add_argument('--negative_sample_strategy', type=str, default='random',
                       choices=['random', 'historical', 'inductive'],
                       help='Negative edge sampling strategy for train/eval')
-    parser.add_argument('--num_epochs', type=int, default=100, help='Number of epochs')
+    parser.add_argument('--num_epochs', type=int, default=3, help='Number of epochs')
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
     
     args = parser.parse_args()
@@ -507,6 +515,7 @@ def main():
     config.num_epochs = args.num_epochs
     config.seed = args.seed
     config.negative_sample_strategy = args.negative_sample_strategy
+    config.model_name = args.model_name
     
     # Create directories
     config.create_directories()

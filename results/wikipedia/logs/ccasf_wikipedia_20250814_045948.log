@@ -1,0 +1,50 @@
+2025-08-14 04:59:48,448 - INFO - Starting experiment: ccasf_clifford on wikipedia
+2025-08-14 04:59:48,448 - INFO - Device: cuda
+2025-08-14 04:59:48,448 - INFO - 
+==================================================
+2025-08-14 04:59:48,448 - INFO - Run 1/5
+2025-08-14 04:59:48,448 - INFO - ==================================================
+2025-08-14 04:59:48,451 - INFO - Starting training for wikipedia with C-CASF
+2025-08-14 04:59:48,451 - INFO - Configuration: {'dataset_name': 'wikipedia', 'model_name': 'DyGMamba_CCASF', 'use_ccasf': True, 'spatial_dim': 64, 'temporal_dim': 64, 'ccasf_output_dim': 128, 'node_feat_dim': 172, 'edge_feat_dim': 172, 'fusion_method': 'clifford', 'weighted_fusion_learnable': True, 'mlp_hidden_dim': None, 'mlp_num_layers': 2, 'use_rpearl': True, 'use_enhanced_lete': True, 'rpearl_k': 16, 'rpearl_mlp_layers': 2, 'rpearl_hidden': 64, 'lete_p': 0.5, 'lete_layer_norm': True, 'lete_scale': True, 'time_feat_dim': 100, 'channel_embedding_dim': 100, 'patch_size': 2, 'num_layers': 2, 'num_heads': 2, 'dropout': 0.1, 'gamma': 0.5, 'max_input_sequence_length': 64, 'max_interaction_times': 10, 'learning_rate': 0.0001, 'weight_decay': 0.01, 'patience': 20, 'num_epochs': 100, 'batch_size': 200, 'eval_batch_size': 200, 'test_batch_size': 200, 'val_ratio': 0.15, 'test_ratio': 0.15, 'negative_sample_strategy': 'random', 'num_neighbors': 20, 'num_runs': 5, 'load_best_configs': False, 'device': 'cuda', 'num_workers': 8, 'seed': 0, 'data_root': '/home/s2516027/GLCE/processed_data', 'output_root': '/home/s2516027/GLCE/results', 'checkpoint_dir': '/home/s2516027/GLCE/checkpoints', 'log_every': 1, 'eval_every': 5, 'save_model': True, 'verbose': True}
+2025-08-14 04:59:48,452 - INFO - Loading wikipedia dataset...
+2025-08-14 04:59:48,870 - INFO - Number of nodes: 9228
+2025-08-14 04:59:48,870 - INFO - Number of edges: 157475
+2025-08-14 04:59:48,870 - INFO - Node feature dimension: 172
+2025-08-14 04:59:48,870 - INFO - Edge feature dimension: 172
+2025-08-14 04:59:48,870 - INFO - Training interactions: 79202
+2025-08-14 04:59:48,870 - INFO - Validation interactions: 23621
+2025-08-14 04:59:48,870 - INFO - Test interactions: 23621
+2025-08-14 04:59:49,015 - INFO - Creating DyGMamba with C-CASF integration...
+2025-08-14 04:59:49,314 - INFO - Model created with 1503547 parameters
+2025-08-14 04:59:49,314 - INFO - C-CASF Configuration:
+2025-08-14 04:59:49,314 - INFO -   - Spatial dimension: 64
+2025-08-14 04:59:49,314 - INFO -   - Temporal dimension: 64
+2025-08-14 04:59:49,314 - INFO -   - Output dimension: 128
+2025-08-14 04:59:49,314 - INFO -   - Fusion method: clifford
+2025-08-14 04:59:49,314 - INFO -   - Using R-PEARL: True
+2025-08-14 04:59:49,314 - INFO -   - Using Enhanced LeTE: True
+2025-08-14 05:00:09,517 - INFO - validation - AUC: 0.5716, AP: 0.6096
+2025-08-14 05:00:09,518 - INFO - save model /home/s2516027/GLCE/checkpoints/wikipedia/ccasf/DyGMamba_CCASF_seed0.pkl
+2025-08-14 05:00:09,708 - INFO - Saved best model to /home/s2516027/GLCE/checkpoints/wikipedia/best_ccasf_model_wikipedia.pth
+2025-08-14 05:00:09,708 - INFO - Epoch   0/100 | Loss: 0.0515 | Time: 20.39s
+2025-08-14 05:00:25,162 - INFO - Epoch   1/100 | Loss: 0.0000 | Time: 15.45s
+2025-08-14 05:00:40,485 - INFO - Epoch   2/100 | Loss: 0.0000 | Time: 15.32s
+2025-08-14 05:00:55,787 - INFO - Epoch   3/100 | Loss: 0.0001 | Time: 15.30s
+2025-08-14 05:01:11,043 - INFO - Epoch   4/100 | Loss: 0.0000 | Time: 15.26s
+2025-08-14 05:01:30,135 - INFO - validation - AUC: 0.5444, AP: 0.5931
+2025-08-14 05:01:30,136 - INFO - Epoch   5/100 | Loss: 0.0000 | Time: 19.09s
+2025-08-14 05:01:45,475 - INFO - Epoch   6/100 | Loss: 0.0000 | Time: 15.34s
+2025-08-14 05:02:00,779 - INFO - Epoch   7/100 | Loss: 0.0000 | Time: 15.30s
+2025-08-14 05:02:16,122 - INFO - Epoch   8/100 | Loss: 0.0000 | Time: 15.34s
+2025-08-14 05:02:31,356 - INFO - Epoch   9/100 | Loss: 0.0000 | Time: 15.23s
+2025-08-14 05:02:50,467 - INFO - validation - AUC: 0.5026, AP: 0.5727
+2025-08-14 05:02:50,467 - INFO - Epoch  10/100 | Loss: 0.0000 | Time: 19.11s
+2025-08-14 05:03:05,861 - INFO - Epoch  11/100 | Loss: 0.0000 | Time: 15.39s
+2025-08-14 05:03:21,184 - INFO - Epoch  12/100 | Loss: 0.0000 | Time: 15.32s
+2025-08-14 05:03:36,344 - INFO - Epoch  13/100 | Loss: 0.0000 | Time: 15.16s
+2025-08-14 05:03:51,716 - INFO - Epoch  14/100 | Loss: 0.0000 | Time: 15.37s
+2025-08-14 05:04:10,820 - INFO - validation - AUC: 0.4916, AP: 0.5645
+2025-08-14 05:04:10,820 - INFO - Epoch  15/100 | Loss: 0.0000 | Time: 19.10s
+2025-08-14 05:04:26,133 - INFO - Epoch  16/100 | Loss: 0.0000 | Time: 15.31s
+2025-08-14 05:04:41,512 - INFO - Epoch  17/100 | Loss: 0.0000 | Time: 15.38s
+2025-08-14 05:04:56,740 - INFO - Epoch  18/100 | Loss: 0.0000 | Time: 15.23s

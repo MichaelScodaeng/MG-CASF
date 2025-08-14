@@ -1,0 +1,43 @@
+2025-08-14 05:08:24,336 - INFO - Starting experiment: ccasf_clifford on wikipedia
+2025-08-14 05:08:24,336 - INFO - Device: cuda
+2025-08-14 05:08:24,336 - INFO - 
+==================================================
+2025-08-14 05:08:24,336 - INFO - Run 1/5
+2025-08-14 05:08:24,336 - INFO - ==================================================
+2025-08-14 05:08:24,340 - INFO - Starting training for wikipedia with C-CASF
+2025-08-14 05:08:24,340 - INFO - Configuration: {'dataset_name': 'wikipedia', 'model_name': 'DyGMamba_CCASF', 'use_ccasf': True, 'spatial_dim': 64, 'temporal_dim': 64, 'ccasf_output_dim': 128, 'node_feat_dim': 172, 'edge_feat_dim': 172, 'fusion_method': 'clifford', 'weighted_fusion_learnable': True, 'mlp_hidden_dim': None, 'mlp_num_layers': 2, 'use_rpearl': True, 'use_enhanced_lete': True, 'rpearl_k': 16, 'rpearl_mlp_layers': 2, 'rpearl_hidden': 64, 'lete_p': 0.5, 'lete_layer_norm': True, 'lete_scale': True, 'time_feat_dim': 100, 'channel_embedding_dim': 100, 'patch_size': 2, 'num_layers': 2, 'num_heads': 2, 'dropout': 0.1, 'gamma': 0.5, 'max_input_sequence_length': 64, 'max_interaction_times': 10, 'learning_rate': 0.0001, 'weight_decay': 0.01, 'patience': 20, 'num_epochs': 100, 'batch_size': 200, 'eval_batch_size': 200, 'test_batch_size': 200, 'val_ratio': 0.15, 'test_ratio': 0.15, 'negative_sample_strategy': 'random', 'num_neighbors': 20, 'num_runs': 5, 'load_best_configs': False, 'device': 'cuda', 'num_workers': 8, 'seed': 0, 'data_root': '/home/s2516027/GLCE/processed_data', 'output_root': '/home/s2516027/GLCE/results', 'checkpoint_dir': '/home/s2516027/GLCE/checkpoints', 'log_every': 1, 'eval_every': 5, 'save_model': True, 'verbose': True}
+2025-08-14 05:08:24,341 - INFO - Loading wikipedia dataset...
+2025-08-14 05:08:24,767 - INFO - Number of nodes: 9228
+2025-08-14 05:08:24,767 - INFO - Number of edges: 157475
+2025-08-14 05:08:24,767 - INFO - Node feature dimension: 172
+2025-08-14 05:08:24,767 - INFO - Edge feature dimension: 172
+2025-08-14 05:08:24,767 - INFO - Training interactions: 79202
+2025-08-14 05:08:24,767 - INFO - Validation interactions: 23621
+2025-08-14 05:08:24,767 - INFO - Test interactions: 23621
+2025-08-14 05:08:24,909 - INFO - Creating DyGMamba with C-CASF integration...
+2025-08-14 05:08:25,115 - ERROR - R-PEARL init failed; falling back to SimpleGraphSpatialEncoder
+Traceback (most recent call last):
+  File "/home/s2516027/GLCE/DyGMamba/models/DyGMamba_CCASF.py", line 133, in _init_ccasf_components
+    self.spatial_encoder = RPEARLAdapter(
+                           ^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/DyGMamba/models/rpearl_adapter.py", line 84, in __init__
+    self.sample_aggregator = GINSampleAggregator(
+                             ^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/Pearl_PE/PEARL/src/pe.py", line 136, in __init__
+    self.gin = GIN(n_layers, in_dims, hidden_dims, out_dims, create_mlp, bn, laplacian=None)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/Pearl_PE/PEARL/src/gin.py", line 27, in __init__
+    layer = GINLayer(create_mlp(in_dims, hidden_dims))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/DyGMamba/models/rpearl_adapter.py", line 80, in create_mlp
+    return MLP(in_dim, mlp_hidden, out_dim, mlp_nlayers,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: MLP.__init__() missing 2 required positional arguments: 'use_bn' and 'dropout_prob'
+2025-08-14 05:08:25,153 - INFO - Model created with 1503547 parameters
+2025-08-14 05:08:25,154 - INFO - C-CASF Configuration:
+2025-08-14 05:08:25,154 - INFO -   - Spatial dimension: 64
+2025-08-14 05:08:25,154 - INFO -   - Temporal dimension: 64
+2025-08-14 05:08:25,154 - INFO -   - Output dimension: 128
+2025-08-14 05:08:25,154 - INFO -   - Fusion method: clifford
+2025-08-14 05:08:25,154 - INFO -   - Using R-PEARL: True
+2025-08-14 05:08:25,154 - INFO -   - Using Enhanced LeTE: True

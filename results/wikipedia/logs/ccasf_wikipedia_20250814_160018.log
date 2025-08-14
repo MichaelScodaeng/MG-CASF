@@ -1,0 +1,38 @@
+2025-08-14 16:00:18,589 - INFO - Starting experiment: ccasf_clifford on wikipedia
+2025-08-14 16:00:18,589 - INFO - Device: cuda
+2025-08-14 16:00:18,589 - INFO - 
+==================================================
+2025-08-14 16:00:18,589 - INFO - Run 1/5
+2025-08-14 16:00:18,589 - INFO - ==================================================
+2025-08-14 16:00:18,592 - INFO - Starting training for wikipedia with C-CASF
+2025-08-14 16:00:18,592 - INFO - Configuration: {'dataset_name': 'wikipedia', 'model_name': 'DyGMamba_CCASF', 'use_ccasf': True, 'spatial_dim': 64, 'temporal_dim': 64, 'ccasf_output_dim': 128, 'node_feat_dim': 172, 'edge_feat_dim': 172, 'fusion_method': 'clifford', 'weighted_fusion_learnable': True, 'mlp_hidden_dim': None, 'mlp_num_layers': 2, 'use_rpearl': True, 'use_enhanced_lete': True, 'rpearl_k': 16, 'rpearl_mlp_layers': 2, 'rpearl_hidden': 64, 'lete_p': 0.5, 'lete_layer_norm': True, 'lete_scale': True, 'time_feat_dim': 100, 'channel_embedding_dim': 100, 'patch_size': 2, 'num_layers': 2, 'num_heads': 2, 'dropout': 0.1, 'gamma': 0.5, 'max_input_sequence_length': 64, 'max_interaction_times': 10, 'learning_rate': 0.0001, 'weight_decay': 0.01, 'patience': 20, 'num_epochs': 100, 'batch_size': 200, 'eval_batch_size': 200, 'test_batch_size': 200, 'val_ratio': 0.15, 'test_ratio': 0.15, 'negative_sample_strategy': 'random', 'num_neighbors': 20, 'num_runs': 5, 'load_best_configs': False, 'device': 'cuda', 'num_workers': 8, 'seed': 0, 'data_root': '/home/s2516027/GLCE/processed_data', 'output_root': '/home/s2516027/GLCE/results', 'checkpoint_dir': '/home/s2516027/GLCE/checkpoints', 'log_every': 1, 'eval_every': 5, 'save_model': True, 'verbose': True}
+2025-08-14 16:00:18,593 - INFO - Loading wikipedia dataset...
+2025-08-14 16:00:19,014 - INFO - Number of nodes: 9228
+2025-08-14 16:00:19,014 - INFO - Number of edges: 157475
+2025-08-14 16:00:19,014 - INFO - Node feature dimension: 172
+2025-08-14 16:00:19,014 - INFO - Edge feature dimension: 172
+2025-08-14 16:00:19,014 - INFO - Training interactions: 79202
+2025-08-14 16:00:19,015 - INFO - Validation interactions: 23621
+2025-08-14 16:00:19,015 - INFO - Test interactions: 23621
+2025-08-14 16:00:19,159 - INFO - Creating DyGMamba with C-CASF integration...
+2025-08-14 16:00:19,473 - INFO - Model created with 1198686 parameters
+2025-08-14 16:00:19,473 - INFO - C-CASF Configuration:
+2025-08-14 16:00:19,473 - INFO -   - Spatial dimension: 64
+2025-08-14 16:00:19,474 - INFO -   - Temporal dimension: 64
+2025-08-14 16:00:19,474 - INFO -   - Output dimension: 128
+2025-08-14 16:00:19,474 - INFO -   - Fusion method: clifford
+2025-08-14 16:00:19,474 - INFO -   - Using R-PEARL: True
+2025-08-14 16:00:19,474 - INFO -   - Using Enhanced LeTE: True
+2025-08-14 16:01:04,703 - INFO - validation - AUC: 0.5000, AP: 0.5000
+2025-08-14 16:01:04,704 - INFO - save model /home/s2516027/GLCE/checkpoints/wikipedia/ccasf/DyGMamba_CCASF_seed0.pkl
+2025-08-14 16:01:04,867 - INFO - Saved best model to /home/s2516027/GLCE/checkpoints/wikipedia/best_ccasf_model_wikipedia.pth
+2025-08-14 16:01:04,867 - INFO - Epoch   0/100 | Loss: 0.6931 | Time: 45.39s
+2025-08-14 16:01:33,750 - INFO - Epoch   1/100 | Loss: 0.6931 | Time: 28.88s
+2025-08-14 16:02:01,810 - INFO - Epoch   2/100 | Loss: 0.6931 | Time: 28.06s
+2025-08-14 16:02:29,839 - INFO - Epoch   3/100 | Loss: 0.6931 | Time: 28.03s
+2025-08-14 16:02:57,816 - INFO - Epoch   4/100 | Loss: 0.6931 | Time: 27.98s
+2025-08-14 16:03:38,206 - INFO - validation - AUC: 0.5000, AP: 0.5000
+2025-08-14 16:03:38,206 - INFO - save model /home/s2516027/GLCE/checkpoints/wikipedia/ccasf/DyGMamba_CCASF_seed0.pkl
+2025-08-14 16:03:38,279 - INFO - Epoch   5/100 | Loss: 0.6931 | Time: 40.46s
+2025-08-14 16:04:06,392 - INFO - Epoch   6/100 | Loss: 0.6931 | Time: 28.11s
+2025-08-14 16:04:34,294 - INFO - Epoch   7/100 | Loss: 0.6931 | Time: 27.90s

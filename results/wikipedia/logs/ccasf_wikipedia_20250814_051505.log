@@ -1,0 +1,211 @@
+2025-08-14 05:15:05,963 - INFO - Starting experiment: ccasf_clifford on wikipedia
+2025-08-14 05:15:05,963 - INFO - Device: cuda
+2025-08-14 05:15:05,963 - INFO - 
+==================================================
+2025-08-14 05:15:05,963 - INFO - Run 1/5
+2025-08-14 05:15:05,963 - INFO - ==================================================
+2025-08-14 05:15:05,966 - INFO - Starting training for wikipedia with C-CASF
+2025-08-14 05:15:05,966 - INFO - Configuration: {'dataset_name': 'wikipedia', 'model_name': 'DyGMamba_CCASF', 'use_ccasf': True, 'spatial_dim': 64, 'temporal_dim': 64, 'ccasf_output_dim': 128, 'node_feat_dim': 172, 'edge_feat_dim': 172, 'fusion_method': 'clifford', 'weighted_fusion_learnable': True, 'mlp_hidden_dim': None, 'mlp_num_layers': 2, 'use_rpearl': True, 'use_enhanced_lete': True, 'rpearl_k': 16, 'rpearl_mlp_layers': 2, 'rpearl_hidden': 64, 'lete_p': 0.5, 'lete_layer_norm': True, 'lete_scale': True, 'time_feat_dim': 100, 'channel_embedding_dim': 100, 'patch_size': 2, 'num_layers': 2, 'num_heads': 2, 'dropout': 0.1, 'gamma': 0.5, 'max_input_sequence_length': 64, 'max_interaction_times': 10, 'learning_rate': 0.0001, 'weight_decay': 0.01, 'patience': 20, 'num_epochs': 100, 'batch_size': 200, 'eval_batch_size': 200, 'test_batch_size': 200, 'val_ratio': 0.15, 'test_ratio': 0.15, 'negative_sample_strategy': 'random', 'num_neighbors': 20, 'num_runs': 5, 'load_best_configs': False, 'device': 'cuda', 'num_workers': 8, 'seed': 0, 'data_root': '/home/s2516027/GLCE/processed_data', 'output_root': '/home/s2516027/GLCE/results', 'checkpoint_dir': '/home/s2516027/GLCE/checkpoints', 'log_every': 1, 'eval_every': 5, 'save_model': True, 'verbose': True}
+2025-08-14 05:15:05,967 - INFO - Loading wikipedia dataset...
+2025-08-14 05:15:06,383 - INFO - Number of nodes: 9228
+2025-08-14 05:15:06,383 - INFO - Number of edges: 157475
+2025-08-14 05:15:06,383 - INFO - Node feature dimension: 172
+2025-08-14 05:15:06,383 - INFO - Edge feature dimension: 172
+2025-08-14 05:15:06,383 - INFO - Training interactions: 79202
+2025-08-14 05:15:06,383 - INFO - Validation interactions: 23621
+2025-08-14 05:15:06,383 - INFO - Test interactions: 23621
+2025-08-14 05:15:06,530 - INFO - Creating DyGMamba with C-CASF integration...
+2025-08-14 05:15:06,804 - INFO - Model created with 1214206 parameters
+2025-08-14 05:15:06,804 - INFO - C-CASF Configuration:
+2025-08-14 05:15:06,804 - INFO -   - Spatial dimension: 64
+2025-08-14 05:15:06,804 - INFO -   - Temporal dimension: 64
+2025-08-14 05:15:06,804 - INFO -   - Output dimension: 128
+2025-08-14 05:15:06,805 - INFO -   - Fusion method: clifford
+2025-08-14 05:15:06,805 - INFO -   - Using R-PEARL: True
+2025-08-14 05:15:06,805 - INFO -   - Using Enhanced LeTE: True
+2025-08-14 05:15:07,028 - ERROR - Error in batch 0
+Traceback (most recent call last):
+  File "/home/s2516027/GLCE/DyGMamba/train_ccasf_link_prediction.py", line 163, in train_epoch
+    result = model.compute_src_dst_node_temporal_embeddings(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/DyGMamba/models/DyGMamba_CCASF.py", line 259, in compute_src_dst_node_temporal_embeddings
+    return self._compute_ccasf_embeddings(src_node_ids, dst_node_ids, node_interact_times, num_samples)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/DyGMamba/models/DyGMamba_CCASF.py", line 310, in _compute_ccasf_embeddings
+    node_embeddings = self.stampede_framework(graph_data, timestamps)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/DyGMamba/models/CCASF.py", line 543, in forward
+    spatial_embeddings = self.spatial_encoder.get_embeddings(graph_data, node_ids)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/DyGMamba/models/rpearl_adapter.py", line 267, in get_embeddings
+    return self.forward(graph_data, node_ids)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/DyGMamba/models/rpearl_adapter.py", line 241, in forward
+    spatial_embeddings = self.pearl_encoder(laplacians, W_list, edge_index, batch)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/Pearl_PE/PEARL/src/pe.py", line 107, in forward
+    out = self.sample_aggr(W_list, edge_index, self.basis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/Pearl_PE/PEARL/src/pe.py", line 149, in forward
+    PE = self.gin(W, edge_index)
+       ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/Pearl_PE/PEARL/src/gin.py", line 44, in forward
+    X = layer(X, edge_index, laplacian=self.laplacian, mask=mask)   # [N_sum, ***, D_hid] or [N_sum, ***, D_out]
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/Pearl_PE/PEARL/src/gin.py", line 107, in forward
+    return self.mlp(Z, mask)       # [N_sum, ***, D_out]
+           ^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/Pearl_PE/PEARL/src/mlp.py", line 48, in forward
+    X = layer(X, mask=mask)      # [***, D_hid]
+        ^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/Pearl_PE/PEARL/src/mlp.py", line 103, in forward
+    X = self.fc(X)                     # [***, D_out]
+        ^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/linear.py", line 125, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: mat1 and mat2 shapes cannot be multiplied (6241x16 and 64x64)
+2025-08-14 05:15:07,033 - ERROR - Error in run 0
+Traceback (most recent call last):
+  File "/home/s2516027/GLCE/DyGMamba/train_ccasf_link_prediction.py", line 435, in main
+    results, model = train_model(config, logger)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/DyGMamba/train_ccasf_link_prediction.py", line 326, in train_model
+    train_loss = train_epoch(model, train_data, optimizer, criterion, config, logger)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/DyGMamba/train_ccasf_link_prediction.py", line 163, in train_epoch
+    result = model.compute_src_dst_node_temporal_embeddings(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/DyGMamba/models/DyGMamba_CCASF.py", line 259, in compute_src_dst_node_temporal_embeddings
+    return self._compute_ccasf_embeddings(src_node_ids, dst_node_ids, node_interact_times, num_samples)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/DyGMamba/models/DyGMamba_CCASF.py", line 310, in _compute_ccasf_embeddings
+    node_embeddings = self.stampede_framework(graph_data, timestamps)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/DyGMamba/models/CCASF.py", line 543, in forward
+    spatial_embeddings = self.spatial_encoder.get_embeddings(graph_data, node_ids)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/DyGMamba/models/rpearl_adapter.py", line 267, in get_embeddings
+    return self.forward(graph_data, node_ids)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/DyGMamba/models/rpearl_adapter.py", line 241, in forward
+    spatial_embeddings = self.pearl_encoder(laplacians, W_list, edge_index, batch)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/Pearl_PE/PEARL/src/pe.py", line 107, in forward
+    out = self.sample_aggr(W_list, edge_index, self.basis)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/Pearl_PE/PEARL/src/pe.py", line 149, in forward
+    PE = self.gin(W, edge_index)
+       ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/Pearl_PE/PEARL/src/gin.py", line 44, in forward
+    X = layer(X, edge_index, laplacian=self.laplacian, mask=mask)   # [N_sum, ***, D_hid] or [N_sum, ***, D_out]
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/Pearl_PE/PEARL/src/gin.py", line 107, in forward
+    return self.mlp(Z, mask)       # [N_sum, ***, D_out]
+           ^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/Pearl_PE/PEARL/src/mlp.py", line 48, in forward
+    X = layer(X, mask=mask)      # [***, D_hid]
+        ^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/Pearl_PE/PEARL/src/mlp.py", line 103, in forward
+    X = self.fc(X)                     # [***, D_out]
+        ^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/anaconda3/envs/glce/lib/python3.11/site-packages/torch/nn/modules/linear.py", line 125, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: mat1 and mat2 shapes cannot be multiplied (6241x16 and 64x64)

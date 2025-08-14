@@ -97,8 +97,9 @@ class PEARLPositionalEncoder(nn.Module):
             # split into N*B*[Nx1]
             j = 0
             for lap, w in zip(Lap, W):
+                dev = lap.device
                 for i in range(w):
-                    e_i = torch.zeros(w).to(device)
+                    e_i = torch.zeros(w, device=dev)
                     e_i[i] = 1
                     output = filter(lap, e_i, self.k)  #can also use bern_filter(lap, e_i, self.k) 
                     W_list.append(output)             # [NxMxK]*B

@@ -61,7 +61,8 @@ class RPEARLAdapter(nn.Module):
         batch_norm: bool = True,
         basis: bool = False,
         cache_embeddings: bool = True,
-        device: str = 'cpu'
+        device: str = 'cpu',
+        mlp_dropout: float = 0.1,
     ):
         super(RPEARLAdapter, self).__init__()
         
@@ -75,16 +76,26 @@ class RPEARLAdapter(nn.Module):
         self._embedding_cache = {}
         
         if PEARL_AVAILABLE:
-            # Create MLP factory function
+            # Create MLP factory function compatible with PEARL's MLP signature
             def create_mlp(in_dim: int, out_dim: int, use_bias: bool = True):
-                return MLP(in_dim, mlp_hidden, out_dim, mlp_nlayers, 
-                          activation=pearl_activation, use_bias=use_bias)
+                return MLP(
+                    n_layers=mlp_nlayers,
+                    in_dims=in_dim,
+                    hidden_dims=mlp_hidden,
+                    out_dims=out_dim,
+                    use_bn=batch_norm,
+                    activation=pearl_activation,
+                    dropout_prob=mlp_dropout,
+                    norm_type="batch",
+                    NEW_BATCH_NORM=False,
+                    use_bias=use_bias,
+                )
             
             # Create sample aggregator
             self.sample_aggregator = GINSampleAggregator(
                 n_layers=n_sample_aggr_layers,
-                in_dims=output_dim if mlp_nlayers > 0 else k,
-                hidden_dims=sample_aggr_hidden_dims,
+                in_dims=k,  # input feature dim equals spectral order K
+                hidden_dims=k,  # keep hidden dim = K to match incoming feature size
                 out_dims=pe_dims,
                 create_mlp=create_mlp,
                 bn=batch_norm
@@ -100,18 +111,23 @@ class RPEARLAdapter(nn.Module):
                 pearl_act=pearl_activation,
                 mlp_out=output_dim
             ).to(device)
-            
         else:
             # Fallback implementation
             self.pearl_encoder = self._create_fallback_encoder(output_dim)
             
-        # Final projection to ensure correct output dimension
-        final_dim = pe_dims if PEARL_AVAILABLE else output_dim
-        if final_dim != output_dim:
-            self.output_projection = nn.Linear(final_dim, output_dim)
+        # Determine actual PE output feature dim and build projection
+        if PEARL_AVAILABLE:
+            try:
+                pe_out_dim = self.sample_aggregator.out_dims  # equals GIN.out_dims
+            except Exception:
+                pe_out_dim = pe_dims
         else:
-            self.output_projection = nn.Identity()
-            
+            pe_out_dim = output_dim
+        self.output_projection = nn.Linear(pe_out_dim, output_dim) if pe_out_dim != output_dim else nn.Identity()
+
+        # Pre-registered adapter for 1D features -> output_dim to avoid dynamic param creation
+        self.adapt1 = nn.Linear(1, output_dim)
+
         # Output normalization
         self.output_norm = nn.LayerNorm(output_dim)
         
@@ -202,18 +218,11 @@ class RPEARLAdapter(nn.Module):
     ) -> torch.Tensor:
         """
         Generate spatial embeddings using R-PEARL.
-        
-        Args:
-            graph_data: Graph data containing edge_index, batch, etc.
-            node_ids: Specific node IDs to compute embeddings for
-            use_cache: Whether to use cached embeddings (default: self.cache_embeddings)
-            
-        Returns:
-            torch.Tensor: Spatial embeddings [num_nodes, output_dim]
         """
+        # Enable caching only in eval mode to avoid reusing autograd graphs across batches
         if use_cache is None:
-            use_cache = self.cache_embeddings
-            
+            use_cache = self.cache_embeddings and (not self.training)
+        
         # Generate cache key for static embeddings
         if use_cache and isinstance(graph_data, dict) and 'cache_key' in graph_data:
             cache_key = graph_data['cache_key']
@@ -225,25 +234,121 @@ class RPEARLAdapter(nn.Module):
         
         # Prepare inputs for R-PEARL
         laplacians, W_list, edge_index, batch = self._prepare_inputs(graph_data, node_ids)
+        try:
+            pass
+            #print(f"[RPEARLAdapter] lap0={laplacians[0].shape if laplacians else None}, edge_index={tuple(edge_index.shape)}, batch={tuple(batch.shape)}")
+        except Exception:
+            pass
         
         # Generate spatial embeddings
         if PEARL_AVAILABLE:
             spatial_embeddings = self.pearl_encoder(laplacians, W_list, edge_index, batch)
         else:
             spatial_embeddings = self.pearl_encoder(laplacians, W_list, edge_index, batch)
-            
+        
+        try:
+            pass
+            #print(f"[RPEARLAdapter] PEARL output shape={tuple(spatial_embeddings.shape) if hasattr(spatial_embeddings,'shape') else type(spatial_embeddings)}, dim={spatial_embeddings.dim() if hasattr(spatial_embeddings,'dim') else 'NA'}, device={getattr(spatial_embeddings,'device', 'NA')}")
+        except Exception:
+            pass
+        
+        # Ensure PE output is 2D [N, D] (per-node features). Handle common degenerate shapes.
+        if hasattr(spatial_embeddings, 'dim'):
+            N_nodes = laplacians[0].shape[0] if laplacians and hasattr(laplacians[0], 'shape') else batch.numel()
+            if spatial_embeddings.dim() == 1:
+                L = spatial_embeddings.shape[0]
+                if N_nodes > 0 and L == N_nodes * N_nodes:
+                    #print(f"[RPEARLAdapter] 1D length {L} equals N^2; reshaping to [{N_nodes}, {N_nodes}] then averaging rows to [N, 1]")
+                    spatial_embeddings = spatial_embeddings.view(N_nodes, N_nodes).mean(dim=-1, keepdim=True)
+                elif N_nodes > 0 and L == N_nodes:
+                    #print("[RPEARLAdapter] 1D length equals N; treating as [N, 1]")
+                    spatial_embeddings = spatial_embeddings.unsqueeze(-1)
+                elif N_nodes > 0 and L % N_nodes == 0:
+                    C = L // N_nodes
+                    #print(f"[RPEARLAdapter] 1D length {L} divisible by N; reshaping to [N, {C}]")
+                    spatial_embeddings = spatial_embeddings.view(N_nodes, C)
+                else:
+                    #print(f"[RPEARLAdapter][WARN] 1D output with length {L} not aligned to N={N_nodes}; forcing to [L, 1]")
+                    spatial_embeddings = spatial_embeddings.unsqueeze(-1)
+            elif spatial_embeddings.dim() == 2:
+                L, C = spatial_embeddings.shape
+                if N_nodes > 0 and L == N_nodes * N_nodes:
+                    #print(f"[RPEARLAdapter] 2D output with L=N^2; reshaping to [N, N] and averaging rows to [N, 1]")
+                    spatial_embeddings = spatial_embeddings.view(N_nodes, N_nodes).mean(dim=-1, keepdim=True)
+                elif N_nodes > 0 and L % N_nodes == 0 and L != N_nodes:
+                    R = L // N_nodes
+                    #print(f"[RPEARLAdapter] 2D output with L divisible by N; collapsing {R} blocks to [N, {C*R}]")
+                    spatial_embeddings = spatial_embeddings.view(N_nodes, R, C).reshape(N_nodes, R * C)
+            elif spatial_embeddings.dim() == 3:
+                #print(f"[RPEARLAdapter] PEARL output is 3D {tuple(spatial_embeddings.shape)}; reducing over axis=1")
+                spatial_embeddings = spatial_embeddings.sum(dim=1)
+            else:
+                #print(f"[RPEARLAdapter] PEARL output is >3D {tuple(spatial_embeddings.shape)}; flattening to [N, -1]")
+                N = spatial_embeddings.size(0)
+                spatial_embeddings = spatial_embeddings.view(N, -1)
+        
+        try:
+            #print(f"[RPEARLAdapter] After reshape, shape={tuple(spatial_embeddings.shape)}")
+            pass
+        except Exception:
+            pass
+        
         # Apply final projection and normalization
-        spatial_embeddings = self.output_projection(spatial_embeddings)
-        spatial_embeddings = self.output_norm(spatial_embeddings)
+        try:
+            projected = self.output_projection(spatial_embeddings)
+            #print(f"[RPEARLAdapter] After projection, shape={tuple(projected.shape)} to output_dim={self.output_dim}")
+        except Exception as e:
+            print(f"[RPEARLAdapter][ERROR] Projection failed: input shape={getattr(spatial_embeddings,'shape','NA')}, proj_in_features={getattr(self.output_projection,'in_features','NA')}, out_features={getattr(self.output_projection,'out_features','NA')} -> {e}")
+            raise
+        
+        # If width still mismatches, adapt to output_dim
+        if hasattr(projected, 'shape') and projected.dim() >= 2 and projected.shape[-1] != self.output_dim:
+            in_w = projected.shape[-1]
+            if in_w == 1:
+                #print(f"[RPEARLAdapter][ADAPT] Using pre-registered 1->{self.output_dim} adapter")
+                projected = self.adapt1(projected)
+                try:
+                    #print(f"[RPEARLAdapter] After 1D adapter, shape={tuple(projected.shape)}")
+                    pass
+                except Exception:
+                    pass
+            else:
+                #print(f"[RPEARLAdapter][ADAPT] Mismatched width {in_w} -> {self.output_dim}; applying fallback adaptive projection (may not be optimized)")
+                # Create/update adaptive projection layer (note: created post-optimizer)
+                if not hasattr(self, '_adaptive_proj') or getattr(self._adaptive_proj, 'in_features', None) != in_w:
+                    self._adaptive_proj = nn.Linear(in_w, self.output_dim).to(projected.device)
+                projected = self._adaptive_proj(projected)
+                try:
+                    #print(f"[RPEARLAdapter] After adaptive projection, shape={tuple(projected.shape)}")
+                    pass
+                except Exception:
+                    pass
+        
+        try:
+            normalized = self.output_norm(projected)
+        except Exception as e:
+            print(f"[RPEARLAdapter][ERROR] LayerNorm failed: got shape={getattr(projected,'shape','NA')}, expected last dim={self.output_norm.normalized_shape}")
+            raise
+        
+        spatial_embeddings = normalized
         
         # Cache embeddings if requested
+        # Cache only in eval mode and store detached (no grad) copy
         if use_cache and isinstance(graph_data, dict) and 'cache_key' in graph_data:
-            self._embedding_cache[graph_data['cache_key']] = spatial_embeddings.clone()
+            self._embedding_cache[graph_data['cache_key']] = spatial_embeddings.detach().clone()
         
         # Select specific nodes if requested
         if node_ids is not None:
+            # Ensure node_ids tensor device matches
+            if isinstance(node_ids, torch.Tensor) and node_ids.device != spatial_embeddings.device:
+                node_ids = node_ids.to(spatial_embeddings.device)
             spatial_embeddings = spatial_embeddings[node_ids]
-            
+            try:
+                #print(f"[RPEARLAdapter] After node_ids indexing, shape={tuple(spatial_embeddings.shape)}")
+                pass
+            except Exception:
+                pass
+        
         return spatial_embeddings
     
     def get_embeddings(

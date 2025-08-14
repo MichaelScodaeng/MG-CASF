@@ -101,7 +101,7 @@ class CCASFConfig:
         
         dataset_configs = {
             'wikipedia': {
-                'time_feat_dim': 100,
+                'time_feat_dim': 10,
                 'channel_embedding_dim': 100,
                 'max_input_sequence_length': 64,
                 'learning_rate': 0.0001,

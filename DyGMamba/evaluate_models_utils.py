@@ -36,7 +36,7 @@ def evaluate_model_link_prediction(model_name: str, model: nn.Module, neighbor_s
     assert evaluate_neg_edge_sampler.seed is not None
     evaluate_neg_edge_sampler.reset_random_state()
 
-    if model_name in ['DyRep', 'TGAT', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer', 'DyGMamba']:
+    if model_name in ['DyRep', 'TGAT', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer', 'DyGMamba', 'DyGMamba_CCASF']:
         # evaluation phase use all the graph information
         model[0].set_neighbor_sampler(neighbor_sampler)
 
@@ -131,6 +131,17 @@ def evaluate_model_link_prediction(model_name: str, model: nn.Module, neighbor_s
 
                 # get temporal embedding of negative source and negative destination nodes
                 # two Tensors, with shape (batch_size, node_feat_dim)
+                batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings = \
+                    model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_neg_src_node_ids,
+                                                                      dst_node_ids=batch_neg_dst_node_ids,
+                                                                      node_interact_times=batch_node_interact_times)
+            elif model_name in ['DyGMamba_CCASF']:
+                # CCASF backbone returns two embeddings like DyGFormer
+                batch_src_node_embeddings, batch_dst_node_embeddings = \
+                    model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_src_node_ids,
+                                                                      dst_node_ids=batch_dst_node_ids,
+                                                                      node_interact_times=batch_node_interact_times)
+
                 batch_neg_src_node_embeddings, batch_neg_dst_node_embeddings = \
                     model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_neg_src_node_ids,
                                                                       dst_node_ids=batch_neg_dst_node_ids,

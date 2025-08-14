@@ -11,12 +11,12 @@ import os
 import sys
 import time
 import warnings
+import json
 from pathlib import Path
 
 import numpy as np
 import torch
 import torch.nn as nn
-from sklearn.metrics import average_precision_score, roc_auc_score
 from tqdm import tqdm
 
 # Add project root to path
@@ -24,11 +24,14 @@ sys.path.append('/home/s2516027/GLCE/DyGMamba')
 
 from configs.ccasf_config import get_config, EXPERIMENT_CONFIGS
 from models.DyGMamba_CCASF import DyGMamba_CCASF
-from utils.DataLoader import get_data_loader  
+from models.DyGMamba import DyGMamba
+from models.modules import MergeLayer, MergeLayerTD
+from utils.DataLoader import get_data_loader, get_idx_data_loader  
 from utils.EarlyStopping import EarlyStopping
 from utils.load_configs import load_link_prediction_best_configs
-from utils.utils import set_random_seed, convert_to_gpu, get_parameter_sizes, get_neighbor_sampler
+from utils.utils import set_random_seed, convert_to_gpu, get_parameter_sizes, get_neighbor_sampler, NegativeEdgeSampler
 from utils.metrics import get_link_prediction_metrics
+from evaluate_models_utils import evaluate_model_link_prediction
 import faulthandler
 faulthandler.enable()
 warnings.filterwarnings('default')
@@ -76,31 +79,33 @@ def load_data(config, logger):
 
 
 def create_model(config, node_raw_features, edge_raw_features, neighbor_sampler, logger):
-    """Create the C-CASF enhanced DyGMamba model."""
+    """Create backbone + link predictor model; DyGMamba_CCASF by default, fallback to DyGMamba."""
     logger.info("Creating DyGMamba with C-CASF integration...")
-    
+
     model_config = config.get_model_config()
     ccasf_config = config.get_ccasf_config()
-    
+
     try:
-        model = DyGMamba_CCASF(
+        backbone = DyGMamba_CCASF(
             node_raw_features=node_raw_features,
-            edge_raw_features=edge_raw_features, 
+            edge_raw_features=edge_raw_features,
             neighbor_sampler=neighbor_sampler,
-            ccasf_config=ccasf_config,  # Pass C-CASF fusion config separately
+            ccasf_config=ccasf_config,
             **model_config
         )
-        
-        # Log model architecture
+        # Use CCASF embedding dimension for link predictor
+        in_dim = getattr(backbone, 'ccasf_output_dim', node_raw_features.shape[1])
+        link_predictor = MergeLayer(input_dim1=in_dim, input_dim2=in_dim, hidden_dim=in_dim, output_dim=1)
+        model = nn.Sequential(backbone, link_predictor)
+
         total_params = get_parameter_sizes(model)
         logger.info(f"Model created with {total_params} parameters")
-        
-        # Log C-CASF specific info
+
         if config.use_ccasf:
-            logger.info(f"C-CASF Configuration:")
+            logger.info("C-CASF Configuration:")
             logger.info(f"  - Spatial dimension: {config.spatial_dim}")
-            logger.info(f"  - Temporal dimension: {config.temporal_dim}")  
-            logger.info(f"  - Output dimension: {config.ccasf_output_dim}")
+            logger.info(f"  - Temporal dimension: {config.temporal_dim}")
+            logger.info(f"  - Output dimension: {getattr(backbone, 'ccasf_output_dim', config.ccasf_output_dim)}")
             logger.info(f"  - Fusion method: {config.fusion_method}")
             if config.fusion_method == 'weighted':
                 logger.info(f"  - Weighted fusion learnable: {config.weighted_fusion_learnable}")
@@ -109,16 +114,12 @@ def create_model(config, node_raw_features, edge_raw_features, neighbor_sampler,
                 logger.info(f"  - MLP num layers: {config.mlp_num_layers}")
             logger.info(f"  - Using R-PEARL: {config.use_rpearl}")
             logger.info(f"  - Using Enhanced LeTE: {config.use_enhanced_lete}")
-        
+
         return model
-        
+
     except Exception:
-        logger.exception("Error creating model")
-        logger.info("Falling back to original DyGMamba...")
-        
-        # Fallback to original DyGMamba if C-CASF fails
-        from models.DyGMamba import DyGMamba
-        model = DyGMamba(
+        logger.exception("Error creating C-CASF backbone; falling back to original DyGMamba")
+        backbone = DyGMamba(
             node_raw_features=node_raw_features,
             edge_raw_features=edge_raw_features,
             neighbor_sampler=neighbor_sampler,
@@ -133,150 +134,102 @@ def create_model(config, node_raw_features, edge_raw_features, neighbor_sampler,
             max_interaction_times=config.max_interaction_times,
             device=config.device
         )
-        
+        in_dim = node_raw_features.shape[1]
+        link_predictor = MergeLayerTD(input_dim1=in_dim, input_dim2=in_dim, input_dim3=in_dim, hidden_dim=in_dim, output_dim=1)
+        model = nn.Sequential(backbone, link_predictor)
         total_params = get_parameter_sizes(model)
         logger.info(f"Fallback model created with {total_params} parameters")
-        
         return model
 
 
-def train_epoch(model, train_data, optimizer, criterion, config, logger):
-    """Train the model for one epoch."""
+def train_epoch(model, train_data, train_idx_data_loader, train_neg_sampler, optimizer, criterion, config, logger):
+    """Train the model for one epoch with indexed loader and NegativeEdgeSampler."""
     model.train()
-    
+
     total_loss = 0.0
     num_batches = 0
-    
-    # This is a simplified training loop - you'd need to adapt based on DyGMamba's actual training procedure
-    for batch_idx in range(0, len(train_data.src_node_ids), config.batch_size):
+
+    for batch_idx, indices in enumerate(tqdm(train_idx_data_loader, ncols=120)):
         optimizer.zero_grad()
-        
-        end_idx = min(batch_idx + config.batch_size, len(train_data.src_node_ids))
-        batch_src_nodes = train_data.src_node_ids[batch_idx:end_idx]
-        batch_dst_nodes = train_data.dst_node_ids[batch_idx:end_idx] 
-        batch_timestamps = train_data.node_interact_times[batch_idx:end_idx]
-        
+
+        idx = indices.numpy()
+        batch_src_nodes = train_data.src_node_ids[idx]
+        batch_dst_nodes = train_data.dst_node_ids[idx]
+        batch_timestamps = train_data.node_interact_times[idx]
+
         try:
-            # Forward pass using DyGMamba's API
-            if hasattr(model, 'compute_src_dst_node_temporal_embeddings'):
-                # DyGMamba returns 3 values: src_embeddings, dst_embeddings, time_diff_emb
-                result = model.compute_src_dst_node_temporal_embeddings(
-                    src_node_ids=batch_src_nodes,
-                    dst_node_ids=batch_dst_nodes, 
-                    node_interact_times=batch_timestamps
-                )
-                if len(result) == 3:
-                    src_embeddings, dst_embeddings, time_diff_emb = result
-                else:
-                    src_embeddings, dst_embeddings = result
+            # Forward pass using backbone's API
+            result = model[0].compute_src_dst_node_temporal_embeddings(
+                src_node_ids=batch_src_nodes,
+                dst_node_ids=batch_dst_nodes,
+                node_interact_times=batch_timestamps
+            )
+            if isinstance(result, (list, tuple)) and len(result) == 3:
+                src_embeddings, dst_embeddings, time_diff_emb = result
             else:
-                # Fallback for other models that might have forward method
-                src_embeddings, dst_embeddings = model(batch_src_nodes, batch_dst_nodes, batch_timestamps)
-            
-            # Compute loss (simplified - you'd use actual link prediction loss)
-            # This is just a placeholder - replace with actual DyGMamba loss computation
-            pos_scores = torch.sum(src_embeddings * dst_embeddings, dim=1)
-            loss = criterion(pos_scores, torch.ones_like(pos_scores))  # Placeholder
-            
-            # Backward pass
+                src_embeddings, dst_embeddings = result
+
+            # Positive probabilities via link predictor
+            if isinstance(model[1], MergeLayerTD) and isinstance(result, (list, tuple)) and len(result) == 3:
+                pos_prob = model[1](input_1=src_embeddings, input_2=dst_embeddings, input_3=time_diff_emb).squeeze(-1).sigmoid()
+            else:
+                pos_prob = model[1](input_1=src_embeddings, input_2=dst_embeddings).squeeze(-1).sigmoid()
+
+            # Negative sampling via provided sampler
+            try:
+                if getattr(train_neg_sampler, 'negative_sample_strategy', 'random') != 'random':
+                    neg_src_nodes, neg_dst_nodes = train_neg_sampler.sample(size=len(batch_src_nodes),
+                                                                            batch_src_node_ids=batch_src_nodes,
+                                                                            batch_dst_node_ids=batch_dst_nodes,
+                                                                            current_batch_start_time=batch_timestamps[0],
+                                                                            current_batch_end_time=batch_timestamps[-1])
+                else:
+                    _, neg_dst_nodes = train_neg_sampler.sample(size=len(batch_src_nodes))
+                    neg_src_nodes = batch_src_nodes
+            except Exception:
+                unique_dst_nodes = np.unique(train_data.dst_node_ids)
+                neg_dst_nodes = np.random.choice(unique_dst_nodes, size=len(batch_dst_nodes), replace=True)
+                neg_src_nodes = batch_src_nodes
+
+            neg_result = model[0].compute_src_dst_node_temporal_embeddings(
+                src_node_ids=neg_src_nodes,
+                dst_node_ids=neg_dst_nodes,
+                node_interact_times=batch_timestamps
+            )
+            if isinstance(neg_result, (list, tuple)) and len(neg_result) == 3:
+                neg_src_embeddings, neg_dst_embeddings, neg_time_diff_emb = neg_result
+            else:
+                neg_src_embeddings, neg_dst_embeddings = neg_result
+
+            if isinstance(model[1], MergeLayerTD) and isinstance(neg_result, (list, tuple)) and len(neg_result) == 3:
+                neg_prob = model[1](input_1=neg_src_embeddings, input_2=neg_dst_embeddings, input_3=neg_time_diff_emb).squeeze(-1).sigmoid()
+            else:
+                neg_prob = model[1](input_1=neg_src_embeddings, input_2=neg_dst_embeddings).squeeze(-1).sigmoid()
+
+            # BCELoss on probabilities
+            predicts = torch.cat([pos_prob, neg_prob], dim=0)
+            labels = torch.cat([torch.ones_like(pos_prob), torch.zeros_like(neg_prob)], dim=0)
+
+            loss = criterion(predicts, labels)
             loss.backward()
             optimizer.step()
-            
+
             total_loss += loss.item()
             num_batches += 1
-            
+
         except Exception:
             logger.exception(f"Error in batch {batch_idx}")
             raise
-    
-    avg_loss = total_loss / max(num_batches, 1)
-    return avg_loss
+
+    return total_loss / max(num_batches, 1)
 
 
-def evaluate_model(model, eval_data, config, logger, split_name="validation"):
-    """Evaluate the model."""
-    model.eval()
-    
-    all_pos_scores = []
-    all_neg_scores = []
-    
-    with torch.no_grad():
-        for batch_idx in range(0, len(eval_data.src_node_ids), config.eval_batch_size):
-            end_idx = min(batch_idx + config.eval_batch_size, len(eval_data.src_node_ids))
-            batch_src_nodes = eval_data.src_node_ids[batch_idx:end_idx]
-            batch_dst_nodes = eval_data.dst_node_ids[batch_idx:end_idx]
-            batch_timestamps = eval_data.node_interact_times[batch_idx:end_idx]
-            
-            try:
-                # Forward pass using DyGMamba's API
-                if hasattr(model, 'compute_src_dst_node_temporal_embeddings'):
-                    # DyGMamba returns 3 values: src_embeddings, dst_embeddings, time_diff_emb
-                    result = model.compute_src_dst_node_temporal_embeddings(
-                        src_node_ids=batch_src_nodes,
-                        dst_node_ids=batch_dst_nodes,
-                        node_interact_times=batch_timestamps
-                    )
-                    if len(result) == 3:
-                        src_embeddings, dst_embeddings, time_diff_emb = result
-                    else:
-                        src_embeddings, dst_embeddings = result
-                    
-                    # Generate negative samples and compute scores
-                    # Sample valid node IDs from the neighbor sampler domain (training graph)
-                    try:
-                        max_node_id = len(model.neighbor_sampler.nodes_neighbor_times) - 1
-                        neg_dst_nodes = np.random.randint(0, max_node_id + 1, size=len(batch_dst_nodes), dtype=np.int64)
-                    except Exception:
-                        # Fallback: sample from observed dst node ids
-                        unique_dst_nodes = np.unique(eval_data.dst_node_ids)
-                        neg_dst_nodes = np.random.choice(unique_dst_nodes, size=len(batch_dst_nodes), replace=True)
-                    
-                    neg_result = model.compute_src_dst_node_temporal_embeddings(
-                        src_node_ids=batch_src_nodes,
-                        dst_node_ids=neg_dst_nodes,
-                        node_interact_times=batch_timestamps
-                    )
-                    if len(neg_result) == 3:
-                        neg_src_embeddings, neg_dst_embeddings, neg_time_diff_emb = neg_result
-                    else:
-                        neg_src_embeddings, neg_dst_embeddings = neg_result
-                else:
-                    # Fallback for other models
-                    src_embeddings, dst_embeddings = model(batch_src_nodes, batch_dst_nodes, batch_timestamps)
-                    try:
-                        max_node_id = len(model.neighbor_sampler.nodes_neighbor_times) - 1
-                        neg_dst_nodes = np.random.randint(0, max_node_id + 1, size=len(batch_dst_nodes), dtype=np.int64)
-                    except Exception:
-                        unique_dst_nodes = np.unique(eval_data.dst_node_ids)
-                        neg_dst_nodes = np.random.choice(unique_dst_nodes, size=len(batch_dst_nodes), replace=True)
-                    neg_src_embeddings, neg_dst_embeddings = model(batch_src_nodes, neg_dst_nodes, batch_timestamps)
-                
-                # Compute positive scores
-                pos_scores = torch.sum(src_embeddings * dst_embeddings, dim=1)
-                all_pos_scores.extend(pos_scores.cpu().numpy())
-                
-                # Compute negative scores
-                neg_scores = torch.sum(neg_src_embeddings * neg_dst_embeddings, dim=1)
-                all_neg_scores.extend(neg_scores.cpu().numpy())
-                
-            except Exception:
-                logger.exception(f"Error in evaluation batch {batch_idx}")
-                raise
-    
-    # Compute metrics
-    if len(all_pos_scores) > 0 and len(all_neg_scores) > 0:
-        y_true = np.concatenate([np.ones(len(all_pos_scores)), np.zeros(len(all_neg_scores))])
-        y_scores = np.concatenate([all_pos_scores, all_neg_scores])
-        
-        auc_score = roc_auc_score(y_true, y_scores)
-        ap_score = average_precision_score(y_true, y_scores)
-        
-        logger.info(f"{split_name} - AUC: {auc_score:.4f}, AP: {ap_score:.4f}")
-        
-        return auc_score, ap_score
-    else:
-        logger.warning(f"No valid predictions for {split_name}")
+def summarize_metrics(metrics_list):
+    if not metrics_list:
         return 0.0, 0.0
+    auc = np.mean([m['roc_auc'] for m in metrics_list])
+    ap = np.mean([m['average_precision'] for m in metrics_list])
+    return auc, ap
 
 
 def train_model(config, logger):
@@ -290,20 +243,26 @@ def train_model(config, logger):
     # Load data
     node_raw_features, edge_raw_features, full_data, train_data, val_data, test_data, new_node_val_data, new_node_test_data = load_data(config, logger)
     
-    # Create neighbor sampler using project utility (uniform by default)
-    neighbor_sampler = get_neighbor_sampler(data=train_data,
-                                            sample_neighbor_strategy='uniform',
-                                            time_scaling_factor=0.0,
-                                            seed=0)
-    
-    # Create model
-    model = create_model(config, node_raw_features, edge_raw_features, neighbor_sampler, logger)
+    # Create neighbor samplers
+    sample_strategy = getattr(config, 'sample_neighbor_strategy', 'uniform')
+    time_scaling_factor = getattr(config, 'time_scaling_factor', 0.0)
+    train_neighbor_sampler = get_neighbor_sampler(data=train_data,
+                                                  sample_neighbor_strategy=sample_strategy,
+                                                  time_scaling_factor=time_scaling_factor,
+                                                  seed=0)
+    full_neighbor_sampler = get_neighbor_sampler(data=full_data,
+                                                 sample_neighbor_strategy=sample_strategy,
+                                                 time_scaling_factor=time_scaling_factor,
+                                                 seed=1)
+
+    # Create model (Sequential: backbone + link predictor)
+    model = create_model(config, node_raw_features, edge_raw_features, train_neighbor_sampler, logger)
     model = model.to(config.device)
     
     # Create optimizer and scheduler
     optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=config.patience//2, factor=0.5, verbose=True)
-    criterion = nn.BCEWithLogitsLoss()
+    criterion = nn.BCELoss()
     
     # Early stopping (use project EarlyStopping API)
     save_model_folder = os.path.join(config.checkpoint_dir, config.dataset_name, 'ccasf')
@@ -315,6 +274,54 @@ def train_model(config, logger):
                                    logger=logger,
                                    model_name='DyGMamba_CCASF')
     
+    # Data loaders and negative samplers
+    train_idx_loader = get_idx_data_loader(indices_list=list(range(len(train_data.src_node_ids))),
+                                           batch_size=config.batch_size, shuffle=True)
+    val_idx_loader = get_idx_data_loader(indices_list=list(range(len(val_data.src_node_ids))),
+                                         batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
+    # loaders for all splits
+    train_eval_idx_loader = get_idx_data_loader(indices_list=list(range(len(train_data.src_node_ids))),
+                                                batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
+    new_val_idx_loader = get_idx_data_loader(indices_list=list(range(len(new_node_val_data.src_node_ids))),
+                                             batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
+    new_test_idx_loader = get_idx_data_loader(indices_list=list(range(len(new_node_test_data.src_node_ids))),
+                                              batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
+
+    # Build negative samplers with selected strategy
+    neg_strategy = getattr(config, 'negative_sample_strategy', 'random')
+    last_obs_time = float(np.max(train_data.node_interact_times)) if len(train_data.node_interact_times) > 0 else 0.0
+    train_neg_sampler = NegativeEdgeSampler(src_node_ids=train_data.src_node_ids,
+                                            dst_node_ids=train_data.dst_node_ids,
+                                            interact_times=train_data.node_interact_times,
+                                            last_observed_time=last_obs_time,
+                                            negative_sample_strategy=neg_strategy)
+    val_neg_sampler = NegativeEdgeSampler(src_node_ids=full_data.src_node_ids,
+                                          dst_node_ids=full_data.dst_node_ids,
+                                          interact_times=full_data.node_interact_times,
+                                          last_observed_time=last_obs_time,
+                                          negative_sample_strategy=neg_strategy,
+                                          seed=0)
+    test_idx_loader = get_idx_data_loader(indices_list=list(range(len(test_data.src_node_ids))),
+                                          batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
+    test_neg_sampler = NegativeEdgeSampler(src_node_ids=full_data.src_node_ids,
+                                           dst_node_ids=full_data.dst_node_ids,
+                                           interact_times=full_data.node_interact_times,
+                                           last_observed_time=last_obs_time,
+                                           negative_sample_strategy=neg_strategy,
+                                           seed=2)
+    new_val_neg_sampler = NegativeEdgeSampler(src_node_ids=new_node_val_data.src_node_ids,
+                                              dst_node_ids=new_node_val_data.dst_node_ids,
+                                              interact_times=new_node_val_data.node_interact_times,
+                                              last_observed_time=last_obs_time,
+                                              negative_sample_strategy=neg_strategy,
+                                              seed=1)
+    new_test_neg_sampler = NegativeEdgeSampler(src_node_ids=new_node_test_data.src_node_ids,
+                                               dst_node_ids=new_node_test_data.dst_node_ids,
+                                               interact_times=new_node_test_data.node_interact_times,
+                                               last_observed_time=last_obs_time,
+                                               negative_sample_strategy=neg_strategy,
+                                               seed=3)
+
     # Training loop
     best_val_metric = 0.0
     training_start_time = time.time()
@@ -323,11 +330,24 @@ def train_model(config, logger):
         epoch_start_time = time.time()
         
         # Train
-        train_loss = train_epoch(model, train_data, optimizer, criterion, config, logger)
+        # Ensure backbone uses train neighbor sampler
+        if hasattr(model[0], 'set_neighbor_sampler'):
+            model[0].set_neighbor_sampler(train_neighbor_sampler)
+        train_loss = train_epoch(model, train_data, train_idx_loader, train_neg_sampler, optimizer, criterion, config, logger)
         
         # Evaluate
         if epoch % config.eval_every == 0 or epoch == config.num_epochs - 1:
-            val_auc, val_ap = evaluate_model(model, val_data, config, logger, "validation")
+            # Use baseline evaluator; treat CCASF as two-input model
+            val_losses, val_metrics = evaluate_model_link_prediction(model_name=getattr(config, 'model_name', 'DyGMamba_CCASF'),
+                                                                     model=model,
+                                                                     neighbor_sampler=full_neighbor_sampler,
+                                                                     evaluate_idx_data_loader=val_idx_loader,
+                                                                     evaluate_neg_edge_sampler=val_neg_sampler,
+                                                                     evaluate_data=val_data,
+                                                                     loss_func=criterion,
+                                                                     num_neighbors=getattr(config, 'num_neighbors', 20),
+                                                                     time_gap=getattr(config, 'time_gap', 2000))
+            val_auc, val_ap = summarize_metrics(val_metrics)
             
             # Learning rate scheduling
             scheduler.step(val_ap)
@@ -367,19 +387,91 @@ def train_model(config, logger):
     training_time = time.time() - training_start_time
     logger.info(f"Training completed in {training_time:.2f}s")
     
-    # Final evaluation
+    # Final evaluation using baseline evaluator (train/val/test + inductive)
     logger.info("Final evaluation...")
-    val_auc, val_ap = evaluate_model(model, val_data, config, logger, "validation")
-    test_auc, test_ap = evaluate_model(model, test_data, config, logger, "test")
-    
+    val_losses, val_metrics = evaluate_model_link_prediction(model_name=getattr(config, 'model_name', 'DyGMamba_CCASF'),
+                                                             model=model,
+                                                             neighbor_sampler=full_neighbor_sampler,
+                                                             evaluate_idx_data_loader=val_idx_loader,
+                                                             evaluate_neg_edge_sampler=val_neg_sampler,
+                                                             evaluate_data=val_data,
+                                                             loss_func=criterion,
+                                                             num_neighbors=getattr(config, 'num_neighbors', 20),
+                                                             time_gap=getattr(config, 'time_gap', 2000))
+    test_losses, test_metrics = evaluate_model_link_prediction(model_name=getattr(config, 'model_name', 'DyGMamba_CCASF'),
+                                                               model=model,
+                                                               neighbor_sampler=full_neighbor_sampler,
+                                                               evaluate_idx_data_loader=test_idx_loader,
+                                                               evaluate_neg_edge_sampler=test_neg_sampler,
+                                                               evaluate_data=test_data,
+                                                               loss_func=criterion,
+                                                               num_neighbors=getattr(config, 'num_neighbors', 20),
+                                                               time_gap=getattr(config, 'time_gap', 2000))
+    train_eval_losses, train_eval_metrics = evaluate_model_link_prediction(model_name=getattr(config, 'model_name', 'DyGMamba_CCASF'),
+                                                                          model=model,
+                                                                          neighbor_sampler=full_neighbor_sampler,
+                                                                          evaluate_idx_data_loader=train_eval_idx_loader,
+                                                                          evaluate_neg_edge_sampler=NegativeEdgeSampler(
+                                                                              src_node_ids=train_data.src_node_ids,
+                                                                              dst_node_ids=train_data.dst_node_ids,
+                                                                              interact_times=train_data.node_interact_times,
+                                                                              last_observed_time=last_obs_time,
+                                                                              negative_sample_strategy=neg_strategy,
+                                                                              seed=5),
+                                                                          evaluate_data=train_data,
+                                                                          loss_func=criterion,
+                                                                          num_neighbors=getattr(config, 'num_neighbors', 20),
+                                                                          time_gap=getattr(config, 'time_gap', 2000))
+    new_val_losses, new_val_metrics = evaluate_model_link_prediction(model_name=getattr(config, 'model_name', 'DyGMamba_CCASF'),
+                                                                     model=model,
+                                                                     neighbor_sampler=full_neighbor_sampler,
+                                                                     evaluate_idx_data_loader=new_val_idx_loader,
+                                                                     evaluate_neg_edge_sampler=new_val_neg_sampler,
+                                                                     evaluate_data=new_node_val_data,
+                                                                     loss_func=criterion,
+                                                                     num_neighbors=getattr(config, 'num_neighbors', 20),
+                                                                     time_gap=getattr(config, 'time_gap', 2000))
+    new_test_losses, new_test_metrics = evaluate_model_link_prediction(model_name=getattr(config, 'model_name', 'DyGMamba_CCASF'),
+                                                                       model=model,
+                                                                       neighbor_sampler=full_neighbor_sampler,
+                                                                       evaluate_idx_data_loader=new_test_idx_loader,
+                                                                       evaluate_neg_edge_sampler=new_test_neg_sampler,
+                                                                       evaluate_data=new_node_test_data,
+                                                                       loss_func=criterion,
+                                                                       num_neighbors=getattr(config, 'num_neighbors', 20),
+                                                                       time_gap=getattr(config, 'time_gap', 2000))
+    train_auc, train_ap = summarize_metrics(train_eval_metrics)
+    val_auc, val_ap = summarize_metrics(val_metrics)
+    test_auc, test_ap = summarize_metrics(test_metrics)
+    new_val_auc, new_val_ap = summarize_metrics(new_val_metrics)
+    new_test_auc, new_test_ap = summarize_metrics(new_test_metrics)
+
     results = {
+        'train_auc': train_auc,
+        'train_ap': train_ap,
         'val_auc': val_auc,
         'val_ap': val_ap,
         'test_auc': test_auc,
         'test_ap': test_ap,
+        'new_val_auc': new_val_auc,
+        'new_val_ap': new_val_ap,
+        'new_test_auc': new_test_auc,
+        'new_test_ap': new_test_ap,
+        'negative_sample_strategy': neg_strategy,
         'training_time': training_time
     }
-    
+
+    # Save evaluation results JSON
+    out_dir = os.path.join(config.output_root, config.dataset_name)
+    os.makedirs(out_dir, exist_ok=True)
+    eval_path = os.path.join(out_dir, f'eval_{getattr(config, "model_name", "DyGMamba_CCASF")}_{config.dataset_name}_{getattr(config, "fusion_method", "ccasf")}.json')
+    try:
+        with open(eval_path, 'w') as f:
+            json.dump(results, f, indent=2)
+        logger.info(f"Saved evaluation results to {eval_path}")
+    except Exception as e:
+        logger.warning(f"Failed to save eval JSON: {e}")
+
     return results, model
 
 
@@ -394,6 +486,9 @@ def main():
                       help='Experiment configuration type')
     parser.add_argument('--device', type=str, default=None, help='Device (cpu/cuda)')
     parser.add_argument('--num_runs', type=int, default=5, help='Number of runs')
+    parser.add_argument('--negative_sample_strategy', type=str, default='random',
+                      choices=['random', 'historical', 'inductive'],
+                      help='Negative edge sampling strategy for train/eval')
     parser.add_argument('--num_epochs', type=int, default=100, help='Number of epochs')
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
     
@@ -411,6 +506,7 @@ def main():
     config.num_runs = args.num_runs
     config.num_epochs = args.num_epochs
     config.seed = args.seed
+    config.negative_sample_strategy = args.negative_sample_strategy
     
     # Create directories
     config.create_directories()
@@ -435,6 +531,13 @@ def main():
             results, model = train_model(config, logger)
             results['run'] = run
             all_results.append(results)
+            # Save per-run results
+            run_out_dir = os.path.join(config.output_root, config.dataset_name)
+            os.makedirs(run_out_dir, exist_ok=True)
+            run_json = os.path.join(run_out_dir, f'run{run}_{args.experiment_type}_{args.dataset_name}.json')
+            with open(run_json, 'w') as f:
+                json.dump(results, f, indent=2)
+            logger.info(f"Saved run {run} results to {run_json}")
         except Exception:
             logger.exception(f"Error in run {run}")
             raise
@@ -444,18 +547,18 @@ def main():
         logger.info(f"\n{'='*50}")
         logger.info("FINAL RESULTS")
         logger.info(f"{'='*50}")
-        
-        metrics = ['val_auc', 'val_ap', 'test_auc', 'test_ap']
+
+        metrics = ['train_auc', 'train_ap', 'val_auc', 'val_ap', 'test_auc', 'test_ap', 'new_val_auc', 'new_val_ap', 'new_test_auc', 'new_test_ap']
         for metric in metrics:
             values = [r[metric] for r in all_results if metric in r]
             if values:
                 mean_val = np.mean(values)
                 std_val = np.std(values)
                 logger.info(f"{metric}: {mean_val:.4f} ± {std_val:.4f}")
-        
+
         # Save results
         results_file = os.path.join(config.output_root, config.dataset_name, 
-                                  f'results_{args.experiment_type}_{args.dataset_name}.txt')
+                                    f'results_{args.experiment_type}_{args.dataset_name}.txt')
         with open(results_file, 'w') as f:
             f.write(f"Experiment: {args.experiment_type} on {args.dataset_name}\n")
             f.write(f"Configuration: {config.to_dict()}\n\n")
@@ -465,7 +568,7 @@ def main():
                     mean_val = np.mean(values)
                     std_val = np.std(values)
                     f.write(f"{metric}: {mean_val:.4f} ± {std_val:.4f}\n")
-        
+
         logger.info(f"Results saved to {results_file}")
     else:
         logger.error("No successful runs completed")

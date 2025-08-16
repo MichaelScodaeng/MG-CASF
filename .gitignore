@@ -1,2 +1,4 @@
 processed_data/
 *.nfs*
+*.pkl
+checkpoints/

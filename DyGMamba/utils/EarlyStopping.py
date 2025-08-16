@@ -2,6 +2,16 @@ import os
 import torch
 import torch.nn as nn
 import logging
+# Import MemoryModel to use for isinstance checks
+# This import path assumes MemoryModel is in models/MemoryModel.py relative to your project root.
+# If this path is incorrect, you might need to adjust it or remove the isinstance checks
+# and rely purely on hasattr, though isinstance is generally safer for type checking.
+try:
+    from models.MemoryModel import MemoryModel
+except ImportError:
+    logging.warning("Could not import models.MemoryModel. `isinstance` checks for MemoryModel will be skipped in EarlyStopping.")
+    class MemoryModel: # Define a dummy class if import fails to prevent NameError
+        pass
 
 
 class EarlyStopping(object):
@@ -70,8 +80,28 @@ class EarlyStopping(object):
         """
         self.logger.info(f"save model {self.save_model_path}")
         torch.save(model.state_dict(), self.save_model_path)
+
+        # This block is only executed for memory-based models ('JODIE', 'DyRep', 'TGN')
         if self.model_name in ['JODIE', 'DyRep', 'TGN']:
-            torch.save(model[0].memory_bank.node_raw_messages, self.save_model_nonparametric_data_path)
+            # model[0] is the backbone, which could be a MemoryModel directly or a CCASFWrapper wrapping a MemoryModel
+            backbone_module = model[0] 
+
+            memory_model_instance = None
+            if hasattr(backbone_module, 'backbone_model') and isinstance(backbone_module.backbone_model, MemoryModel):
+                # This case handles when the MemoryModel (TGN, DyRep, JODIE) is wrapped by CCASFWrapper
+                memory_model_instance = backbone_module.backbone_model
+            elif isinstance(backbone_module, MemoryModel):
+                # This case handles when the MemoryModel is the direct backbone (not wrapped by CCASFWrapper)
+                memory_model_instance = backbone_module
+            
+            if memory_model_instance is not None and hasattr(memory_model_instance, 'memory_bank'):
+                torch.save(memory_model_instance.memory_bank.node_raw_messages, self.save_model_nonparametric_data_path)
+                self.logger.info(f"Non-parametric data (memory_bank.node_raw_messages) saved to {self.save_model_nonparametric_data_path}")
+            else:
+                self.logger.warning(f"Model '{self.model_name}' is a memory-based model, but 'memory_bank' could not be found "
+                                    f"in {type(backbone_module).__name__} or its 'backbone_model' attribute. "
+                                    "Non-parametric data not saved.")
+
 
     def load_checkpoint(self, model: nn.Module, map_location: str = None):
         """
@@ -82,5 +112,21 @@ class EarlyStopping(object):
         """
         self.logger.info(f"load model {self.save_model_path}")
         model.load_state_dict(torch.load(self.save_model_path, map_location=map_location))
+        
+        # This block is only executed for memory-based models ('JODIE', 'DyRep', 'TGN')
         if self.model_name in ['JODIE', 'DyRep', 'TGN']:
-            model[0].memory_bank.node_raw_messages = torch.load(self.save_model_nonparametric_data_path, map_location=map_location)
+            backbone_module = model[0]
+            memory_model_instance = None
+            if hasattr(backbone_module, 'backbone_model') and isinstance(backbone_module.backbone_model, MemoryModel):
+                memory_model_instance = backbone_module.backbone_model
+            elif isinstance(backbone_module, MemoryModel):
+                memory_model_instance = backbone_module
+
+            if memory_model_instance is not None and hasattr(memory_model_instance, 'memory_bank'):
+                # Load the raw messages directly into the memory bank
+                memory_model_instance.memory_bank.node_raw_messages = torch.load(self.save_model_nonparametric_data_path, map_location=map_location)
+                self.logger.info(f"Non-parametric data (memory_bank.node_raw_messages) loaded from {self.save_model_nonparametric_data_path}")
+            else:
+                self.logger.warning(f"Model '{self.model_name}' is a memory-based model, but 'memory_bank' could not be found "
+                                    f"in {type(backbone_module).__name__} or its 'backbone_model' attribute. "
+                                    "Non-parametric data not loaded.")

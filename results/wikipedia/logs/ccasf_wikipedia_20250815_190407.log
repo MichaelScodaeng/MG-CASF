@@ -1,0 +1,22 @@
+2025-08-15 19:04:07,709 - INFO - Starting experiment: ccasf_cross_attention on wikipedia
+2025-08-15 19:04:07,709 - INFO - Device: cuda
+2025-08-15 19:04:07,709 - INFO - 
+==================================================
+2025-08-15 19:04:07,709 - INFO - Run 1/5
+2025-08-15 19:04:07,709 - INFO - ==================================================
+2025-08-15 19:04:07,712 - INFO - Starting training for wikipedia with C-CASF
+2025-08-15 19:04:07,712 - INFO - Configuration: {'dataset_name': 'wikipedia', 'model_name': 'DyGMamba', 'use_ccasf': True, 'spatial_dim': 64, 'temporal_dim': 64, 'ccasf_output_dim': 128, 'node_feat_dim': 172, 'edge_feat_dim': 172, 'fusion_method': 'cross_attention', 'weighted_fusion_learnable': True, 'mlp_hidden_dim': None, 'mlp_num_layers': 2, 'cross_attn_heads': 8, 'use_rpearl': True, 'use_enhanced_lete': True, 'rpearl_k': 16, 'rpearl_mlp_layers': 2, 'rpearl_hidden': 64, 'lete_p': 0.5, 'lete_layer_norm': True, 'lete_scale': True, 'time_feat_dim': 100, 'channel_embedding_dim': 100, 'patch_size': 2, 'num_layers': 2, 'num_heads': 2, 'dropout': 0.1, 'gamma': 0.5, 'max_input_sequence_length': 64, 'max_interaction_times': 10, 'learning_rate': 0.0001, 'weight_decay': 0.01, 'patience': 20, 'num_epochs': 3, 'batch_size': 200, 'eval_batch_size': 200, 'test_batch_size': 200, 'val_ratio': 0.15, 'test_ratio': 0.15, 'negative_sample_strategy': 'random', 'num_neighbors': 20, 'num_runs': 5, 'load_best_configs': False, 'device': 'cuda', 'num_workers': 8, 'seed': 0, 'data_root': '/home/s2516027/GLCE/processed_data', 'output_root': '/home/s2516027/GLCE/results', 'checkpoint_dir': '/home/s2516027/GLCE/checkpoints', 'log_every': 1, 'eval_every': 5, 'save_model': True, 'verbose': True}
+2025-08-15 19:04:07,713 - INFO - Loading wikipedia dataset...
+2025-08-15 19:04:08,139 - INFO - Number of nodes: 9228
+2025-08-15 19:04:08,139 - INFO - Number of edges: 157475
+2025-08-15 19:04:08,139 - INFO - Node feature dimension: 172
+2025-08-15 19:04:08,139 - INFO - Edge feature dimension: 172
+2025-08-15 19:04:08,139 - INFO - Training interactions: 79202
+2025-08-15 19:04:08,139 - INFO - Validation interactions: 23621
+2025-08-15 19:04:08,139 - INFO - Test interactions: 23621
+2025-08-15 19:04:08,677 - INFO - Creating model: DyGMamba
+2025-08-15 19:04:08,932 - INFO - Model created with 1003092 parameters
+2025-08-15 19:05:39,277 - INFO - save model /home/s2516027/GLCE/checkpoints/wikipedia/ccasf/DyGMamba_CCASF_seed0.pkl
+2025-08-15 19:05:39,453 - INFO - Saved best model to /home/s2516027/GLCE/checkpoints/wikipedia/best_ccasf_model_wikipedia.pth
+2025-08-15 19:05:39,453 - INFO - Epoch   0/3 | Loss: 0.4409 | Time: 90.48s
+2025-08-15 19:06:54,008 - INFO - Epoch   1/3 | Loss: 0.3263 | Time: 74.55s

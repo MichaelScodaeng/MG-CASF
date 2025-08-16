@@ -30,10 +30,11 @@ class CliffordSpatiotemporalFusion(nn.Module):
     """
     Core Clifford Spatiotemporal Fusion (C-CASF) Layer with multiple fusion options.
     
-    Supports three fusion methods:
+    Supports four fusion methods:
     1. 'clifford' - Clifford algebra-based fusion (proposed method)
     2. 'weighted' - Weighted summation of spatial and temporal embeddings  
     3. 'concat_mlp' - Concatenation followed by MLP projection
+    4. 'cross_attention' - Cross-attention between spatial and temporal embeddings
     
     Args:
         spatial_dim (int): Target spatial dimension D_S
@@ -41,16 +42,18 @@ class CliffordSpatiotemporalFusion(nn.Module):
         output_dim (int): Final output dimension D_ST
         input_spatial_dim (int, optional): Input spatial embedding dimension
         input_temporal_dim (int, optional): Input temporal embedding dimension
-        fusion_method (str): One of ['clifford', 'weighted', 'concat_mlp']
+        fusion_method (str): One of ['clifford', 'weighted', 'concat_mlp', 'cross_attention']
         weighted_fusion_learnable (bool): If True, learn fusion weights; else use fixed 0.5
         mlp_hidden_dim (int, optional): Hidden dimension for MLP fusion
         mlp_num_layers (int): Number of layers in MLP fusion
+        cross_attn_heads (int): Number of attention heads for cross-attention fusion
         dropout (float): Dropout rate for regularization
         
     Mathematical Foundation:
         - Clifford: S * T = S ∧ T (pure bivector via wedge product)
         - Weighted: α·S + β·T where α, β are learnable weights
         - Concat+MLP: MLP([S; T]) where [;] denotes concatenation
+        - Cross-Attention: MultiHead(Q=S, K=T, V=T) + MultiHead(Q=T, K=S, V=S)
     """
     
     def __init__(
@@ -64,6 +67,7 @@ class CliffordSpatiotemporalFusion(nn.Module):
         weighted_fusion_learnable: bool = True,
         mlp_hidden_dim: Optional[int] = None,
         mlp_num_layers: int = 2,
+        cross_attn_heads: int = 8,
         dropout: float = 0.1,
         device: str = 'cpu'
     ):
@@ -73,11 +77,12 @@ class CliffordSpatiotemporalFusion(nn.Module):
         self.temporal_dim = temporal_dim
         self.output_dim = output_dim
         self.fusion_method = fusion_method
+        self.cross_attn_heads = cross_attn_heads
         self.dropout = dropout
         self.device = device
         
         # Validate fusion method
-        valid_methods = ['clifford', 'weighted', 'concat_mlp']
+        valid_methods = ['clifford', 'weighted', 'concat_mlp', 'cross_attention']
         if fusion_method not in valid_methods:
             raise ValueError(f"fusion_method must be one of {valid_methods}, got {fusion_method}")
         
@@ -97,6 +102,8 @@ class CliffordSpatiotemporalFusion(nn.Module):
             self._setup_weighted_fusion(weighted_fusion_learnable)
         elif fusion_method == 'concat_mlp':
             self._setup_concat_mlp_fusion(mlp_hidden_dim, mlp_num_layers)
+        elif fusion_method == 'cross_attention':
+            self._setup_cross_attention_fusion(cross_attn_heads)
         
         self.dropout_layer = nn.Dropout(dropout)
         
@@ -140,6 +147,43 @@ class CliffordSpatiotemporalFusion(nn.Module):
         
         # Final projection to output dimension
         self.output_projection = nn.Linear(common_dim, self.output_dim)
+        self.layer_norm = nn.LayerNorm(self.output_dim)
+        
+    def _setup_cross_attention_fusion(self, num_heads: int):
+        """Setup cross-attention fusion components."""
+        # Ensure both spatial and temporal have same dimension for attention
+        common_dim = max(self.spatial_dim, self.temporal_dim)
+        
+        # Project spatial and temporal to common dimension if needed
+        if self.spatial_dim != common_dim:
+            self.spatial_to_common = nn.Linear(self.spatial_dim, common_dim)
+        else:
+            self.spatial_to_common = nn.Identity()
+            
+        if self.temporal_dim != common_dim:
+            self.temporal_to_common = nn.Linear(self.temporal_dim, common_dim)
+        else:
+            self.temporal_to_common = nn.Identity()
+        
+        # Cross-attention layers
+        # Spatial attends to temporal (Q=spatial, K=temporal, V=temporal)
+        self.spatial_to_temporal_attn = nn.MultiheadAttention(
+            embed_dim=common_dim,
+            num_heads=num_heads,
+            dropout=self.dropout,
+            batch_first=True
+        )
+        
+        # Temporal attends to spatial (Q=temporal, K=spatial, V=spatial)
+        self.temporal_to_spatial_attn = nn.MultiheadAttention(
+            embed_dim=common_dim,
+            num_heads=num_heads,
+            dropout=self.dropout,
+            batch_first=True
+        )
+        
+        # Combine attended features
+        self.combination_layer = nn.Linear(2 * common_dim, self.output_dim)
         self.layer_norm = nn.LayerNorm(self.output_dim)
         
     def _setup_concat_mlp_fusion(self, hidden_dim: Optional[int], num_layers: int):
@@ -214,6 +258,8 @@ class CliffordSpatiotemporalFusion(nn.Module):
             fused_embedding = self._weighted_fusion(spatial_vec, temporal_vec)
         elif self.fusion_method == 'concat_mlp':
             fused_embedding = self._concat_mlp_fusion(spatial_vec, temporal_vec)
+        elif self.fusion_method == 'cross_attention':
+            fused_embedding = self._cross_attention_fusion(spatial_vec, temporal_vec)
         else:
             raise ValueError(f"Unknown fusion method: {self.fusion_method}")
         
@@ -296,6 +342,46 @@ class CliffordSpatiotemporalFusion(nn.Module):
         fused_embedding = self.mlp(concat_embedding)
         
         # Apply layer normalization
+        fused_embedding = self.layer_norm(fused_embedding)
+        fused_embedding = torch.nan_to_num(fused_embedding, nan=0.0, posinf=1e4, neginf=-1e4)
+        
+        return fused_embedding
+    
+    def _cross_attention_fusion(self, spatial_vec: torch.Tensor, temporal_vec: torch.Tensor) -> torch.Tensor:
+        """Perform cross-attention fusion between spatial and temporal embeddings."""
+        # Project to common dimension
+        spatial_common = self.spatial_to_common(spatial_vec)  # [batch_size, common_dim]
+        temporal_common = self.temporal_to_common(temporal_vec)  # [batch_size, common_dim]
+        
+        # Add sequence dimension for MultiheadAttention (expects [batch, seq_len, embed_dim])
+        spatial_seq = spatial_common.unsqueeze(1)  # [batch_size, 1, common_dim]
+        temporal_seq = temporal_common.unsqueeze(1)  # [batch_size, 1, common_dim]
+        
+        # Cross-attention: Spatial attends to temporal
+        spatial_attended, _ = self.spatial_to_temporal_attn(
+            query=spatial_seq,  # What we want to update (spatial)
+            key=temporal_seq,   # What we attend over (temporal)
+            value=temporal_seq  # Values to aggregate (temporal)
+        )  # [batch_size, 1, common_dim]
+        
+        # Cross-attention: Temporal attends to spatial
+        temporal_attended, _ = self.temporal_to_spatial_attn(
+            query=temporal_seq,   # What we want to update (temporal)
+            key=spatial_seq,     # What we attend over (spatial)
+            value=spatial_seq    # Values to aggregate (spatial)
+        )  # [batch_size, 1, common_dim]
+        
+        # Remove sequence dimension
+        spatial_attended = spatial_attended.squeeze(1)  # [batch_size, common_dim]
+        temporal_attended = temporal_attended.squeeze(1)  # [batch_size, common_dim]
+        
+        # Combine attended features
+        combined = torch.cat([spatial_attended, temporal_attended], dim=-1)  # [batch_size, 2*common_dim]
+        
+        # Final projection to output dimension
+        fused_embedding = self.combination_layer(combined)  # [batch_size, output_dim]
+        
+        # Apply layer normalization and numerical stability
         fused_embedding = self.layer_norm(fused_embedding)
         fused_embedding = torch.nan_to_num(fused_embedding, nan=0.0, posinf=1e4, neginf=-1e4)
         

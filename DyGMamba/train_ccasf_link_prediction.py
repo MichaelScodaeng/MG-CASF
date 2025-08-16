@@ -25,6 +25,13 @@ sys.path.append('/home/s2516027/GLCE/DyGMamba')
 from configs.ccasf_config import get_config, EXPERIMENT_CONFIGS
 from models.DyGMamba_CCASF import DyGMamba_CCASF
 from models.DyGMamba import DyGMamba
+from models.TGAT import TGAT
+from models.CAWN import CAWN
+from models.TCL import TCL
+from models.GraphMixer import GraphMixer
+from models.DyGFormer import DyGFormer
+from models.MemoryModel import MemoryModel  # TGN, DyRep, JODIE
+from models.ccasf_wrapper import create_ccasf_model
 from models.modules import MergeLayer, MergeLayerTD
 from utils.DataLoader import get_data_loader, get_idx_data_loader  
 from utils.EarlyStopping import EarlyStopping
@@ -143,8 +150,219 @@ def create_model(config, node_raw_features, edge_raw_features, neighbor_sampler,
         total_params = get_parameter_sizes(model)
         logger.info(f"Model created with {total_params} parameters")
         return model
+
+    elif model_name == 'TGAT':
+        logger.info("Creating model: TGAT")
+        backbone = TGAT(
+            node_raw_features=node_raw_features,
+            edge_raw_features=edge_raw_features,
+            neighbor_sampler=neighbor_sampler,
+            time_feat_dim=config.time_feat_dim,
+            num_layers=config.num_layers,
+            num_heads=config.num_heads,
+            dropout=config.dropout,
+            device=config.device
+        )
+        # Optionally wrap with CCASF if enabled
+        if getattr(config, 'use_ccasf', False):
+            logger.info("Wrapping TGAT with C-CASF")
+            ccasf_config = config.get_ccasf_config()
+            backbone = create_ccasf_model(
+                backbone_name='TGAT',
+                backbone_model=backbone,
+                ccasf_config=ccasf_config,
+                node_raw_features=node_raw_features,
+                edge_raw_features=edge_raw_features,
+                neighbor_sampler=neighbor_sampler,
+                device=config.device
+            )
+            in_dim = getattr(backbone, 'ccasf_output_dim', node_raw_features.shape[1])
+        else:
+            in_dim = node_raw_features.shape[1]
+        link_predictor = MergeLayer(input_dim1=in_dim, input_dim2=in_dim, hidden_dim=in_dim, output_dim=1)
+        model = nn.Sequential(backbone, link_predictor)
+        total_params = get_parameter_sizes(model)
+        logger.info(f"Model created with {total_params} parameters")
+        return model
+
+    elif model_name == 'CAWN':
+        logger.info("Creating model: CAWN")
+        backbone = CAWN(
+            node_raw_features=node_raw_features,
+            edge_raw_features=edge_raw_features,
+            neighbor_sampler=neighbor_sampler,
+            time_feat_dim=config.time_feat_dim,
+            position_feat_dim=getattr(config, 'position_feat_dim', 64),
+            walk_length=getattr(config, 'walk_length', 2),
+            num_walk_heads=getattr(config, 'num_walk_heads', 8),
+            dropout=config.dropout,
+            device=config.device
+        )
+        # Optionally wrap with CCASF if enabled
+        if getattr(config, 'use_ccasf', False):
+            logger.info("Wrapping CAWN with C-CASF")
+            ccasf_config = config.get_ccasf_config()
+            backbone = create_ccasf_model(
+                backbone_name='CAWN',
+                backbone_model=backbone,
+                ccasf_config=ccasf_config,
+                node_raw_features=node_raw_features,
+                edge_raw_features=edge_raw_features,
+                neighbor_sampler=neighbor_sampler,
+                device=config.device
+            )
+            in_dim = getattr(backbone, 'ccasf_output_dim', node_raw_features.shape[1])
+        else:
+            in_dim = node_raw_features.shape[1]
+        link_predictor = MergeLayer(input_dim1=in_dim, input_dim2=in_dim, hidden_dim=in_dim, output_dim=1)
+        model = nn.Sequential(backbone, link_predictor)
+        total_params = get_parameter_sizes(model)
+        logger.info(f"Model created with {total_params} parameters")
+        return model
+
+    elif model_name == 'TCL':
+        logger.info("Creating model: TCL")
+        backbone = TCL(
+            node_raw_features=node_raw_features,
+            edge_raw_features=edge_raw_features,
+            neighbor_sampler=neighbor_sampler,
+            time_feat_dim=config.time_feat_dim,
+            num_layers=config.num_layers,
+            num_heads=config.num_heads,
+            num_depths=getattr(config, 'num_depths', 1),
+            dropout=config.dropout,
+            device=config.device
+        )
+        # Optionally wrap with CCASF if enabled
+        if getattr(config, 'use_ccasf', False):
+            logger.info("Wrapping TCL with C-CASF")
+            ccasf_config = config.get_ccasf_config()
+            backbone = create_ccasf_model(
+                backbone_name='TCL',
+                backbone_model=backbone,
+                ccasf_config=ccasf_config,
+                node_raw_features=node_raw_features,
+                edge_raw_features=edge_raw_features,
+                neighbor_sampler=neighbor_sampler,
+                device=config.device
+            )
+            in_dim = getattr(backbone, 'ccasf_output_dim', node_raw_features.shape[1])
+        else:
+            in_dim = node_raw_features.shape[1]
+        link_predictor = MergeLayer(input_dim1=in_dim, input_dim2=in_dim, hidden_dim=in_dim, output_dim=1)
+        model = nn.Sequential(backbone, link_predictor)
+        total_params = get_parameter_sizes(model)
+        logger.info(f"Model created with {total_params} parameters")
+        return model
+
+    elif model_name == 'GraphMixer':
+        logger.info("Creating model: GraphMixer")
+        backbone = GraphMixer(
+            node_raw_features=node_raw_features,
+            edge_raw_features=edge_raw_features,
+            neighbor_sampler=neighbor_sampler,
+            time_feat_dim=config.time_feat_dim,
+            num_layers=config.num_layers,
+            num_heads=config.num_heads,
+            dropout=config.dropout,
+            device=config.device
+        )
+        # Optionally wrap with CCASF if enabled
+        if getattr(config, 'use_ccasf', False):
+            logger.info("Wrapping GraphMixer with C-CASF")
+            ccasf_config = config.get_ccasf_config()
+            backbone = create_ccasf_model(
+                backbone_name='GraphMixer',
+                backbone_model=backbone,
+                ccasf_config=ccasf_config,
+                node_raw_features=node_raw_features,
+                edge_raw_features=edge_raw_features,
+                neighbor_sampler=neighbor_sampler,
+                device=config.device
+            )
+            in_dim = getattr(backbone, 'ccasf_output_dim', node_raw_features.shape[1])
+        else:
+            in_dim = node_raw_features.shape[1]
+        link_predictor = MergeLayer(input_dim1=in_dim, input_dim2=in_dim, hidden_dim=in_dim, output_dim=1)
+        model = nn.Sequential(backbone, link_predictor)
+        total_params = get_parameter_sizes(model)
+        logger.info(f"Model created with {total_params} parameters")
+        return model
+
+    elif model_name == 'DyGFormer':
+        logger.info("Creating model: DyGFormer")
+        backbone = DyGFormer(
+            node_raw_features=node_raw_features,
+            edge_raw_features=edge_raw_features,
+            neighbor_sampler=neighbor_sampler,
+            time_feat_dim=config.time_feat_dim,
+            channel_embedding_dim=config.channel_embedding_dim,
+            patch_size=config.patch_size,
+            num_layers=config.num_layers,
+            num_heads=config.num_heads,
+            dropout=config.dropout,
+            max_input_sequence_length=config.max_input_sequence_length,
+            device=config.device
+        )
+        # Optionally wrap with CCASF if enabled
+        if getattr(config, 'use_ccasf', False):
+            logger.info("Wrapping DyGFormer with C-CASF")
+            ccasf_config = config.get_ccasf_config()
+            backbone = create_ccasf_model(
+                backbone_name='DyGFormer',
+                backbone_model=backbone,
+                ccasf_config=ccasf_config,
+                node_raw_features=node_raw_features,
+                edge_raw_features=edge_raw_features,
+                neighbor_sampler=neighbor_sampler,
+                device=config.device
+            )
+            in_dim = getattr(backbone, 'ccasf_output_dim', node_raw_features.shape[1])
+        else:
+            in_dim = node_raw_features.shape[1]
+        link_predictor = MergeLayer(input_dim1=in_dim, input_dim2=in_dim, hidden_dim=in_dim, output_dim=1)
+        model = nn.Sequential(backbone, link_predictor)
+        total_params = get_parameter_sizes(model)
+        logger.info(f"Model created with {total_params} parameters")
+        return model
+
+    elif model_name in ['TGN', 'DyRep', 'JODIE']:
+        logger.info(f"Creating model: {model_name}")
+        backbone = MemoryModel(
+            node_raw_features=node_raw_features,
+            edge_raw_features=edge_raw_features,
+            neighbor_sampler=neighbor_sampler,
+            time_feat_dim=config.time_feat_dim,
+            model_name=model_name,  # This determines which memory model to use
+            num_layers=config.num_layers,
+            num_heads=config.num_heads,
+            dropout=config.dropout,
+            device=config.device
+        )
+        # Optionally wrap with CCASF if enabled
+        if getattr(config, 'use_ccasf', False):
+            logger.info(f"Wrapping {model_name} with C-CASF")
+            ccasf_config = config.get_ccasf_config()
+            backbone = create_ccasf_model(
+                backbone_name=model_name,
+                backbone_model=backbone,
+                ccasf_config=ccasf_config,
+                node_raw_features=node_raw_features,
+                edge_raw_features=edge_raw_features,
+                neighbor_sampler=neighbor_sampler,
+                device=config.device
+            )
+            in_dim = getattr(backbone, 'ccasf_output_dim', node_raw_features.shape[1])
+        else:
+            in_dim = node_raw_features.shape[1]
+        link_predictor = MergeLayer(input_dim1=in_dim, input_dim2=in_dim, hidden_dim=in_dim, output_dim=1)
+        model = nn.Sequential(backbone, link_predictor)
+        total_params = get_parameter_sizes(model)
+        logger.info(f"Model created with {total_params} parameters")
+        return model
+        
     else:
-        raise ValueError(f"Unsupported --model_name {model_name}. Supported: DyGMamba_CCASF, DyGMamba")
+        raise ValueError(f"Unsupported --model_name {model_name}. Supported: DyGMamba_CCASF, DyGMamba, TGAT, CAWN, TCL, GraphMixer, DyGFormer, TGN, DyRep, JODIE")
 
 
 def train_epoch(model, train_data, train_idx_data_loader, train_neg_sampler, optimizer, criterion, config, logger):
@@ -161,14 +379,58 @@ def train_epoch(model, train_data, train_idx_data_loader, train_neg_sampler, opt
         batch_src_nodes = train_data.src_node_ids[idx]
         batch_dst_nodes = train_data.dst_node_ids[idx]
         batch_timestamps = train_data.node_interact_times[idx]
+        # For memory-based models, data is already globally sorted, so no need to sort within batch
+        # Edge IDs for memory-based models (if available)
+        batch_edge_ids = None
+        if hasattr(train_data, 'edge_ids') and train_data.edge_ids is not None:
+            batch_edge_ids = train_data.edge_ids[idx]
+        
+        # Sort by timestamp for memory-based models to ensure temporal ordering
+        model_name = getattr(config, 'model_name', 'DyGMamba_CCASF')
+        if model_name in ['TGN', 'DyRep', 'JODIE']:
+            sorted_indices = np.argsort(batch_timestamps)
+            batch_src_nodes = batch_src_nodes[sorted_indices]
+            batch_dst_nodes = batch_dst_nodes[sorted_indices]
+            batch_timestamps = batch_timestamps[sorted_indices]
 
         try:
-            # Forward pass using backbone's API
-            result = model[0].compute_src_dst_node_temporal_embeddings(
-                src_node_ids=batch_src_nodes,
-                dst_node_ids=batch_dst_nodes,
-                node_interact_times=batch_timestamps
-            )
+            # Forward pass using backbone's API with model-specific parameters
+            model_name = getattr(config, 'model_name', 'DyGMamba_CCASF')
+            memory_backup = None  # Initialize memory backup variable
+            
+            if model_name in ['TGAT', 'CAWN', 'TCL']:
+                result = model[0].compute_src_dst_node_temporal_embeddings(
+                    src_node_ids=batch_src_nodes,
+                    dst_node_ids=batch_dst_nodes,
+                    node_interact_times=batch_timestamps,
+                    num_neighbors=getattr(config, 'num_neighbors', 20)
+                )
+            elif model_name == 'GraphMixer':
+                result = model[0].compute_src_dst_node_temporal_embeddings(
+                    src_node_ids=batch_src_nodes,
+                    dst_node_ids=batch_dst_nodes,
+                    node_interact_times=batch_timestamps,
+                    num_neighbors=getattr(config, 'num_neighbors', 20),
+                    time_gap=getattr(config, 'time_gap', 2000)
+                )
+            elif model_name in ['TGN', 'DyRep', 'JODIE']:
+                # Memory-based models: use a simple approach without gradient interference
+                pos_edge_ids = batch_edge_ids if batch_edge_ids is not None else np.zeros(len(batch_src_nodes), dtype=np.int64)
+                result = model[0].compute_src_dst_node_temporal_embeddings(
+                    src_node_ids=batch_src_nodes,
+                    dst_node_ids=batch_dst_nodes,
+                    node_interact_times=batch_timestamps,
+                    edge_ids=pos_edge_ids,
+                    edges_are_positive=True,
+                    num_neighbors=getattr(config, 'num_neighbors', 20)
+                )
+            else:  # DyGMamba_CCASF, DyGMamba, DyGFormer
+                result = model[0].compute_src_dst_node_temporal_embeddings(
+                    src_node_ids=batch_src_nodes,
+                    dst_node_ids=batch_dst_nodes,
+                    node_interact_times=batch_timestamps
+                )
+            
             if isinstance(result, (list, tuple)) and len(result) == 3:
                 src_embeddings, dst_embeddings, time_diff_emb = result
             else:
@@ -181,6 +443,13 @@ def train_epoch(model, train_data, train_idx_data_loader, train_neg_sampler, opt
                 pos_prob = model[1](input_1=src_embeddings, input_2=dst_embeddings).squeeze(-1).sigmoid()
 
             # Negative sampling via provided sampler
+            # For memory-based models, we need to detach the memory before processing negative samples
+            if model_name in ['TGN', 'DyRep', 'JODIE']:
+                if hasattr(model[0], 'backbone_model'):  # CCASFWrapper
+                    model[0].backbone_model.memory_bank.detach_memory_bank()
+                elif hasattr(model[0], 'memory_bank'):  # Direct MemoryModel
+                    model[0].memory_bank.detach_memory_bank()
+
             try:
                 if getattr(train_neg_sampler, 'negative_sample_strategy', 'random') != 'random':
                     neg_src_nodes, neg_dst_nodes = train_neg_sampler.sample(size=len(batch_src_nodes),
@@ -196,11 +465,64 @@ def train_epoch(model, train_data, train_idx_data_loader, train_neg_sampler, opt
                 neg_dst_nodes = np.random.choice(unique_dst_nodes, size=len(batch_dst_nodes), replace=True)
                 neg_src_nodes = batch_src_nodes
 
-            neg_result = model[0].compute_src_dst_node_temporal_embeddings(
-                src_node_ids=neg_src_nodes,
-                dst_node_ids=neg_dst_nodes,
-                node_interact_times=batch_timestamps
-            )
+            if model_name in ['TGAT', 'CAWN', 'TCL']:
+                neg_result = model[0].compute_src_dst_node_temporal_embeddings(
+                    src_node_ids=neg_src_nodes,
+                    dst_node_ids=neg_dst_nodes,
+                    node_interact_times=batch_timestamps,
+                    num_neighbors=getattr(config, 'num_neighbors', 20)
+                )
+            elif model_name == 'GraphMixer':
+                neg_result = model[0].compute_src_dst_node_temporal_embeddings(
+                    src_node_ids=neg_src_nodes,
+                    dst_node_ids=neg_dst_nodes,
+                    node_interact_times=batch_timestamps,
+                    num_neighbors=getattr(config, 'num_neighbors', 20),
+                    time_gap=getattr(config, 'time_gap', 2000)
+                )
+            elif model_name in ['TGN', 'DyRep', 'JODIE']:
+                # For memory-based models, use a completely separate forward pass
+                # First, backup the current memory state
+                if hasattr(model[0], 'backbone_model'):  # CCASFWrapper
+                    memory_model = model[0].backbone_model
+                else:  # Direct MemoryModel
+                    memory_model = model[0]
+                
+                # Backup memory state before negative sampling
+                memory_backup = memory_model.memory_bank.backup_memory_bank()
+                
+                # Compute negative samples without updating memory
+                with torch.no_grad():
+                    neg_edge_ids = np.zeros(len(neg_src_nodes), dtype=np.int64)
+                    neg_result = model[0].compute_src_dst_node_temporal_embeddings(
+                        src_node_ids=neg_src_nodes,
+                        dst_node_ids=neg_dst_nodes,
+                        node_interact_times=batch_timestamps,
+                        edge_ids=neg_edge_ids,
+                        edges_are_positive=False,  # This prevents memory updates
+                        num_neighbors=getattr(config, 'num_neighbors', 20)
+                    )
+                
+                # Restore memory state immediately after negative computation
+                memory_model.memory_bank.reload_memory_bank(memory_backup)
+                
+                # Create new tensors with gradients enabled, completely disconnected from the model
+                if isinstance(neg_result, (list, tuple)) and len(neg_result) >= 2:
+                    neg_src_embeddings = neg_result[0].clone().detach().requires_grad_(True)
+                    neg_dst_embeddings = neg_result[1].clone().detach().requires_grad_(True)
+                    if len(neg_result) == 3 and neg_result[2] is not None:
+                        neg_time_diff_emb = neg_result[2].clone().detach().requires_grad_(True)
+                        neg_result = (neg_src_embeddings, neg_dst_embeddings, neg_time_diff_emb)
+                    else:
+                        neg_result = (neg_src_embeddings, neg_dst_embeddings)
+                else:
+                    neg_result = neg_result.clone().detach().requires_grad_(True)
+            else:  # DyGMamba_CCASF, DyGMamba, DyGFormer
+                neg_result = model[0].compute_src_dst_node_temporal_embeddings(
+                    src_node_ids=neg_src_nodes,
+                    dst_node_ids=neg_dst_nodes,
+                    node_interact_times=batch_timestamps
+                )
             if isinstance(neg_result, (list, tuple)) and len(neg_result) == 3:
                 neg_src_embeddings, neg_dst_embeddings, neg_time_diff_emb = neg_result
             else:
@@ -242,6 +564,10 @@ def train_model(config, logger):
     logger.info(f"Starting training for {config.dataset_name} with C-CASF")
     logger.info(f"Configuration: {config.to_dict()}")
     
+    # Get model name and fusion method for file naming
+    model_name = getattr(config, 'model_name', 'DyGMamba_CCASF')
+    fusion_method = getattr(config, 'fusion_method', 'clifford')
+    
     # Set random seed
     set_random_seed(config.seed)
     
@@ -269,28 +595,51 @@ def train_model(config, logger):
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=config.patience//2, factor=0.5, verbose=True)
     criterion = nn.BCELoss()
     
-    # Early stopping (use project EarlyStopping API)
-    save_model_folder = os.path.join(config.checkpoint_dir, config.dataset_name, 'ccasf')
+    # Early stopping with model-specific paths
+    save_model_folder = os.path.join(config.checkpoint_dir, config.dataset_name, 'models', model_name)
     os.makedirs(save_model_folder, exist_ok=True)
-    save_model_name = f"DyGMamba_CCASF_seed{config.seed}"
+    save_model_name = f"{model_name}_{fusion_method}_seed{config.seed}"
     early_stopping = EarlyStopping(patience=config.patience,
                                    save_model_folder=save_model_folder,
                                    save_model_name=save_model_name,
                                    logger=logger,
-                                   model_name='DyGMamba_CCASF')
+                                   model_name=model_name)
     
     # Data loaders and negative samplers
-    train_idx_loader = get_idx_data_loader(indices_list=list(range(len(train_data.src_node_ids))),
-                                           batch_size=config.batch_size, shuffle=True)
-    val_idx_loader = get_idx_data_loader(indices_list=list(range(len(val_data.src_node_ids))),
-                                         batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
-    # loaders for all splits
-    train_eval_idx_loader = get_idx_data_loader(indices_list=list(range(len(train_data.src_node_ids))),
-                                                batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
-    new_val_idx_loader = get_idx_data_loader(indices_list=list(range(len(new_node_val_data.src_node_ids))),
+    # For memory-based models, enforce global temporal ordering of training indices
+    model_name = getattr(config, 'model_name', 'DyGMamba_CCASF')
+    if model_name in ['TGN', 'DyRep', 'JODIE']:
+        # Sort all data indices by timestamp to ensure temporal ordering for memory-based models
+        train_time_sorted_indices = np.argsort(train_data.node_interact_times)
+        val_time_sorted_indices = np.argsort(val_data.node_interact_times)
+        train_eval_time_sorted_indices = np.argsort(train_data.node_interact_times)
+        new_val_time_sorted_indices = np.argsort(new_node_val_data.node_interact_times)
+        new_test_time_sorted_indices = np.argsort(new_node_test_data.node_interact_times)
+        
+        logger.info(f"Sorted all data by timestamp for memory-based model {model_name}")
+        
+        train_idx_loader = get_idx_data_loader(indices_list=train_time_sorted_indices.tolist(),
+                                               batch_size=config.batch_size, shuffle=False)  # No shuffling for memory models
+        val_idx_loader = get_idx_data_loader(indices_list=val_time_sorted_indices.tolist(),
                                              batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
-    new_test_idx_loader = get_idx_data_loader(indices_list=list(range(len(new_node_test_data.src_node_ids))),
-                                              batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
+        train_eval_idx_loader = get_idx_data_loader(indices_list=train_eval_time_sorted_indices.tolist(),
+                                                    batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
+        new_val_idx_loader = get_idx_data_loader(indices_list=new_val_time_sorted_indices.tolist(),
+                                                 batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
+        new_test_idx_loader = get_idx_data_loader(indices_list=new_test_time_sorted_indices.tolist(),
+                                                  batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
+    else:
+        train_idx_loader = get_idx_data_loader(indices_list=list(range(len(train_data.src_node_ids))),
+                                               batch_size=config.batch_size, shuffle=True)
+        val_idx_loader = get_idx_data_loader(indices_list=list(range(len(val_data.src_node_ids))),
+                                             batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
+        # loaders for all splits
+        train_eval_idx_loader = get_idx_data_loader(indices_list=list(range(len(train_data.src_node_ids))),
+                                                    batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
+        new_val_idx_loader = get_idx_data_loader(indices_list=list(range(len(new_node_val_data.src_node_ids))),
+                                                 batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
+        new_test_idx_loader = get_idx_data_loader(indices_list=list(range(len(new_node_test_data.src_node_ids))),
+                                                  batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
 
     # Build negative samplers with selected strategy
     neg_strategy = getattr(config, 'negative_sample_strategy', 'random')
@@ -334,6 +683,14 @@ def train_model(config, logger):
     for epoch in range(config.num_epochs):
         epoch_start_time = time.time()
         
+        # Initialize memory for memory-based models at the start of each epoch
+        model_name = getattr(config, 'model_name', 'DyGMamba_CCASF')
+        if model_name in ['TGN', 'DyRep', 'JODIE']:
+            if hasattr(model[0], 'backbone_model'):  # CCASFWrapper
+                model[0].backbone_model.memory_bank.__init_memory_bank__()
+            elif hasattr(model[0], 'memory_bank'):  # Direct MemoryModel
+                model[0].memory_bank.__init_memory_bank__()
+        
         # Train
         # Ensure backbone uses train neighbor sampler
         if hasattr(model[0], 'set_neighbor_sampler'):
@@ -367,15 +724,20 @@ def train_model(config, logger):
                 best_val_metric = val_metric
                 
                 if config.save_model:
-                    # Save best model
-                    checkpoint_path = os.path.join(config.checkpoint_dir, config.dataset_name, 
-                                                 f'best_ccasf_model_{config.dataset_name}.pth')
+                    # Save best model with model-specific name
+                    model_checkpoint_dir = os.path.join(config.checkpoint_dir, config.dataset_name, 'best_models')
+                    os.makedirs(model_checkpoint_dir, exist_ok=True)
+                    checkpoint_path = os.path.join(model_checkpoint_dir, 
+                                                 f'best_{model_name}_{fusion_method}_{config.dataset_name}.pth')
                     torch.save({
                         'model_state_dict': model.state_dict(),
                         'optimizer_state_dict': optimizer.state_dict(),
                         'epoch': epoch,
                         'val_metric': val_metric,
-                        'config': config.to_dict()
+                        'config': config.to_dict(),
+                        'model_name': model_name,
+                        'fusion_method': fusion_method,
+                        'dataset': config.dataset_name
                     }, checkpoint_path)
                     logger.info(f"Saved best model to {checkpoint_path}")
             
@@ -466,13 +828,23 @@ def train_model(config, logger):
         'training_time': training_time
     }
 
-    # Save evaluation results JSON
-    out_dir = os.path.join(config.output_root, config.dataset_name)
-    os.makedirs(out_dir, exist_ok=True)
-    eval_path = os.path.join(out_dir, f'eval_{getattr(config, "model_name", "DyGMamba_CCASF")}_{config.dataset_name}_{getattr(config, "fusion_method", "ccasf")}.json')
+    # Save evaluation results with model-specific naming
+    eval_out_dir = os.path.join(config.output_root, config.dataset_name, 'evaluations')
+    os.makedirs(eval_out_dir, exist_ok=True)
+    eval_path = os.path.join(eval_out_dir, f'eval_{model_name}_{fusion_method}_{config.dataset_name}_seed{config.seed}.json')
     try:
+        eval_results = {
+            'model_name': model_name,
+            'fusion_method': fusion_method,
+            'dataset': config.dataset_name,
+            'seed': config.seed,
+            'negative_sample_strategy': neg_strategy,
+            'training_time': training_time,
+            'config': config.to_dict(),
+            'results': results
+        }
         with open(eval_path, 'w') as f:
-            json.dump(results, f, indent=2)
+            json.dump(eval_results, f, indent=2)
         logger.info(f"Saved evaluation results to {eval_path}")
     except Exception as e:
         logger.warning(f"Failed to save eval JSON: {e}")
@@ -491,9 +863,9 @@ def main():
                       help='Experiment configuration type')
     parser.add_argument('--device', type=str, default=None, help='Device (cpu/cuda)')
     parser.add_argument('--model_name', type=str, default='DyGMamba_CCASF',
-                      choices=['DyGMamba_CCASF', 'DyGMamba'],
+                      choices=['DyGMamba_CCASF', 'DyGMamba', 'TGAT', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer', 'TGN', 'DyRep', 'JODIE'],
                       help='Backbone model to train')
-    parser.add_argument('--num_runs', type=int, default=5, help='Number of runs')
+    parser.add_argument('--num_runs', type=int, default=1, help='Number of runs')
     parser.add_argument('--negative_sample_strategy', type=str, default='random',
                       choices=['random', 'historical', 'inductive'],
                       help='Negative edge sampling strategy for train/eval')
@@ -527,10 +899,12 @@ def main():
     
     # Run multiple experiments
     all_results = []
+    model_name = getattr(config, 'model_name', 'DyGMamba_CCASF')
+    fusion_method = getattr(config, 'fusion_method', 'clifford')
     
     for run in range(config.num_runs):
         logger.info(f"\n{'='*50}")
-        logger.info(f"Run {run + 1}/{config.num_runs}")
+        logger.info(f"Run {run + 1}/{config.num_runs} - {model_name} with {fusion_method}")
         logger.info(f"{'='*50}")
         
         # Set seed for this run
@@ -539,11 +913,14 @@ def main():
         try:
             results, model = train_model(config, logger)
             results['run'] = run
+            results['model_name'] = model_name
+            results['fusion_method'] = fusion_method
             all_results.append(results)
-            # Save per-run results
-            run_out_dir = os.path.join(config.output_root, config.dataset_name)
+            
+            # Save per-run results with model-specific naming
+            run_out_dir = os.path.join(config.output_root, config.dataset_name, 'runs')
             os.makedirs(run_out_dir, exist_ok=True)
-            run_json = os.path.join(run_out_dir, f'run{run}_{args.experiment_type}_{args.dataset_name}.json')
+            run_json = os.path.join(run_out_dir, f'run{run}_{model_name}_{fusion_method}_{args.dataset_name}.json')
             with open(run_json, 'w') as f:
                 json.dump(results, f, indent=2)
             logger.info(f"Saved run {run} results to {run_json}")
@@ -551,10 +928,10 @@ def main():
             logger.exception(f"Error in run {run}")
             raise
     
-    # Aggregate results
+    # Aggregate results with model-specific naming
     if all_results:
         logger.info(f"\n{'='*50}")
-        logger.info("FINAL RESULTS")
+        logger.info(f"FINAL RESULTS - {model_name} with {fusion_method}")
         logger.info(f"{'='*50}")
 
         metrics = ['train_auc', 'train_ap', 'val_auc', 'val_ap', 'test_auc', 'test_ap', 'new_val_auc', 'new_val_ap', 'new_test_auc', 'new_test_ap']
@@ -565,11 +942,16 @@ def main():
                 std_val = np.std(values)
                 logger.info(f"{metric}: {mean_val:.4f} ± {std_val:.4f}")
 
-        # Save results
-        results_file = os.path.join(config.output_root, config.dataset_name, 
-                                    f'results_{args.experiment_type}_{args.dataset_name}.txt')
+        # Save aggregate results with model-specific naming
+        results_dir = os.path.join(config.output_root, config.dataset_name, 'aggregated')
+        os.makedirs(results_dir, exist_ok=True)
+        results_file = os.path.join(results_dir, f'results_{model_name}_{fusion_method}_{args.dataset_name}.txt')
+        
         with open(results_file, 'w') as f:
-            f.write(f"Experiment: {args.experiment_type} on {args.dataset_name}\n")
+            f.write(f"Model: {model_name}\n")
+            f.write(f"Fusion Method: {fusion_method}\n")
+            f.write(f"Dataset: {args.dataset_name}\n")
+            f.write(f"Experiment Type: {args.experiment_type}\n")
             f.write(f"Configuration: {config.to_dict()}\n\n")
             for metric in metrics:
                 values = [r[metric] for r in all_results if metric in r]
@@ -578,7 +960,36 @@ def main():
                     std_val = np.std(values)
                     f.write(f"{metric}: {mean_val:.4f} ± {std_val:.4f}\n")
 
-        logger.info(f"Results saved to {results_file}")
+        logger.info(f"Aggregate results saved to {results_file}")
+        
+        # Also save a comprehensive summary JSON
+        summary_json = os.path.join(results_dir, f'summary_{model_name}_{fusion_method}_{args.dataset_name}.json')
+        summary_data = {
+            'experiment_info': {
+                'model_name': model_name,
+                'fusion_method': fusion_method,
+                'dataset': args.dataset_name,
+                'experiment_type': args.experiment_type,
+                'num_runs': config.num_runs,
+                'config': config.to_dict()
+            },
+            'aggregated_metrics': {},
+            'all_runs': all_results
+        }
+        
+        for metric in metrics:
+            values = [r[metric] for r in all_results if metric in r]
+            if values:
+                summary_data['aggregated_metrics'][metric] = {
+                    'mean': float(np.mean(values)),
+                    'std': float(np.std(values)),
+                    'all_values': values
+                }
+        
+        with open(summary_json, 'w') as f:
+            json.dump(summary_data, f, indent=2)
+        logger.info(f"Summary JSON saved to {summary_json}")
+        
     else:
         logger.error("No successful runs completed")
 

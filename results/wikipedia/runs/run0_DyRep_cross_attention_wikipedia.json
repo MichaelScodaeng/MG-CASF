@@ -1,0 +1,17 @@
+{
+  "train_auc": 0.620914168765743,
+  "train_ap": 0.5816859558138059,
+  "val_auc": 0.688870679462261,
+  "val_ap": 0.629242584735876,
+  "test_auc": 0.700366531612645,
+  "test_ap": 0.6423336337162922,
+  "new_val_auc": 0.6477178310313061,
+  "new_val_ap": 0.6065921129324745,
+  "new_test_auc": 0.661313826438499,
+  "new_test_ap": 0.6186448572787668,
+  "negative_sample_strategy": "random",
+  "training_time": 804.3455054759979,
+  "run": 0,
+  "model_name": "DyRep",
+  "fusion_method": "cross_attention"
+}

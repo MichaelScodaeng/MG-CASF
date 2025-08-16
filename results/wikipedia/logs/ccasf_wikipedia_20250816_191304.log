@@ -1,0 +1,33 @@
+2025-08-16 19:13:04,620 - INFO - Starting experiment: ccasf_cross_attention on wikipedia
+2025-08-16 19:13:04,621 - INFO - Device: cuda
+2025-08-16 19:13:04,621 - INFO - 
+==================================================
+2025-08-16 19:13:04,621 - INFO - Run 1/1 - JODIE with cross_attention
+2025-08-16 19:13:04,621 - INFO - ==================================================
+2025-08-16 19:13:04,624 - INFO - Starting training for wikipedia with C-CASF
+2025-08-16 19:13:04,624 - INFO - Configuration: {'dataset_name': 'wikipedia', 'model_name': 'JODIE', 'use_ccasf': True, 'spatial_dim': 64, 'temporal_dim': 64, 'ccasf_output_dim': 128, 'node_feat_dim': 172, 'edge_feat_dim': 172, 'fusion_method': 'cross_attention', 'weighted_fusion_learnable': True, 'mlp_hidden_dim': None, 'mlp_num_layers': 2, 'cross_attn_heads': 8, 'use_rpearl': True, 'use_enhanced_lete': True, 'rpearl_k': 16, 'rpearl_mlp_layers': 2, 'rpearl_hidden': 64, 'lete_p': 0.5, 'lete_layer_norm': True, 'lete_scale': True, 'time_feat_dim': 100, 'channel_embedding_dim': 100, 'patch_size': 2, 'num_layers': 2, 'num_heads': 2, 'dropout': 0.1, 'gamma': 0.5, 'max_input_sequence_length': 64, 'max_interaction_times': 10, 'learning_rate': 0.0001, 'weight_decay': 0.01, 'patience': 20, 'num_epochs': 3, 'batch_size': 200, 'eval_batch_size': 200, 'test_batch_size': 200, 'val_ratio': 0.15, 'test_ratio': 0.15, 'negative_sample_strategy': 'random', 'num_neighbors': 20, 'num_runs': 1, 'load_best_configs': False, 'device': 'cuda', 'num_workers': 8, 'seed': 0, 'data_root': '/home/s2516027/GLCE/processed_data', 'output_root': '/home/s2516027/GLCE/results', 'checkpoint_dir': '/home/s2516027/GLCE/checkpoints', 'log_every': 1, 'eval_every': 5, 'save_model': True, 'verbose': True}
+2025-08-16 19:13:04,624 - INFO - Loading wikipedia dataset...
+2025-08-16 19:13:05,035 - INFO - Number of nodes: 9228
+2025-08-16 19:13:05,035 - INFO - Number of edges: 157475
+2025-08-16 19:13:05,035 - INFO - Node feature dimension: 172
+2025-08-16 19:13:05,035 - INFO - Edge feature dimension: 172
+2025-08-16 19:13:05,035 - INFO - Training interactions: 79202
+2025-08-16 19:13:05,035 - INFO - Validation interactions: 23621
+2025-08-16 19:13:05,035 - INFO - Test interactions: 23621
+2025-08-16 19:13:05,544 - INFO - Creating model: JODIE
+2025-08-16 19:13:05,808 - INFO - Wrapping JODIE with C-CASF
+2025-08-16 19:13:05,810 - INFO - Model created with 195937 parameters
+2025-08-16 19:13:05,818 - INFO - Sorted training data by timestamp for memory-based model JODIE
+2025-08-16 19:13:05,858 - ERROR - Error in run 0
+Traceback (most recent call last):
+  File "/home/s2516027/GLCE/DyGMamba/train_ccasf_link_prediction.py", line 901, in main
+    results, model = train_model(config, logger)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/s2516027/GLCE/DyGMamba/train_ccasf_link_prediction.py", line 684, in train_model
+    model[0].set_neighbor_sampler(train_neighbor_sampler)
+  File "/home/s2516027/GLCE/DyGMamba/models/ccasf_wrapper.py", line 160, in set_neighbor_sampler
+    self.backbone_model.set_neighbor_sampler(neighbor_sampler)
+  File "/home/s2516027/GLCE/DyGMamba/models/MemoryModel.py", line 259, in set_neighbor_sampler
+    assert self.model_name in ['TGN', 'DyRep'], f'Neighbor sampler is not defined in model {self.model_name}!'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Neighbor sampler is not defined in model JODIE!

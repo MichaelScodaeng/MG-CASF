@@ -33,10 +33,11 @@ class CCASFConfig:
         self.edge_feat_dim = 100   # Default, adjust as needed
         
         # Fusion method parameters
-        self.fusion_method = 'clifford'  # 'clifford', 'weighted', 'concat_mlp'
+        self.fusion_method = 'clifford'  # 'clifford', 'weighted', 'concat_mlp', 'cross_attention'
         self.weighted_fusion_learnable = True  # For weighted fusion method
         self.mlp_hidden_dim = None  # For concat_mlp fusion method (None = auto-size)
         self.mlp_num_layers = 2  # For concat_mlp fusion method
+        self.cross_attn_heads = 8  # For cross_attention fusion method
         
         # Component selection
         self.use_rpearl = True
@@ -301,6 +302,17 @@ EXPERIMENT_CONFIGS = {
         'fusion_method': 'concat_mlp',
         'mlp_hidden_dim': 256,
         'mlp_num_layers': 2
+    },
+    
+    # Cross-attention fusion for comparison
+    'ccasf_cross_attention': {
+        'use_ccasf': True,
+        'use_rpearl': True,
+        'use_enhanced_lete': True,
+        'spatial_dim': 64,
+        'temporal_dim': 64,
+        'fusion_method': 'cross_attention',
+        'cross_attn_heads': 8
     },
     
     # Large model with Clifford fusion

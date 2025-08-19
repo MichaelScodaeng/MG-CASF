@@ -42,15 +42,8 @@ def evaluate_model_link_prediction(model_name: str, model: nn.Module, neighbor_s
 
     # Initialize memory for memory-based models at the start of evaluation
     if model_name in ['JODIE', 'DyRep', 'TGN']:
-        # Handle both direct memory models and wrapped memory models
-        if hasattr(model[0], 'backbone_model') and hasattr(model[0].backbone_model, 'memory_bank'):
-            # CCASFWrapper case
-            model[0].backbone_model.memory_bank.__init_memory_bank__()
-            print(f"Memory bank initialized for wrapped {model_name} evaluation")
-        elif hasattr(model[0], 'memory_bank'):
-            # Direct MemoryModel case
-            model[0].memory_bank.__init_memory_bank__()
-            print(f"Memory bank initialized for {model_name} evaluation")
+        model[0].reset_memory_bank()
+        print(f"Memory bank initialized for {model_name} evaluation")
 
     model.eval()
 
@@ -107,14 +100,7 @@ def evaluate_model_link_prediction(model_name: str, model: nn.Module, neighbor_s
                 # we need to first compute the embeddings of negative nodes for memory-based models
                 
                 # Backup memory state before negative computation
-                if hasattr(model[0], 'backbone_model') and hasattr(model[0].backbone_model, 'memory_bank'):
-                    # CCASFWrapper case
-                    memory_backup = model[0].backbone_model.memory_bank.backup_memory_bank()
-                elif hasattr(model[0], 'memory_bank'):
-                    # Direct MemoryModel case
-                    memory_backup = model[0].memory_bank.backup_memory_bank()
-                else:
-                    memory_backup = None
+                model[0].backup_memory_bank()
                 
                 # get temporal embedding of negative source and negative destination nodes
                 # two Tensors, with shape (batch_size, node_feat_dim)
@@ -122,18 +108,12 @@ def evaluate_model_link_prediction(model_name: str, model: nn.Module, neighbor_s
                     model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_neg_src_node_ids,
                                                                       dst_node_ids=batch_neg_dst_node_ids,
                                                                       node_interact_times=batch_node_interact_times,
-                                                                      edge_ids=np.zeros(len(batch_neg_src_node_ids), dtype=np.int64),
+                                                                      edge_ids=None,
                                                                       edges_are_positive=False,
                                                                       num_neighbors=num_neighbors)
 
                 # Restore memory state after negative computation
-                if memory_backup is not None:
-                    if hasattr(model[0], 'backbone_model') and hasattr(model[0].backbone_model, 'memory_bank'):
-                        # CCASFWrapper case
-                        model[0].backbone_model.memory_bank.reload_memory_bank(memory_backup)
-                    elif hasattr(model[0], 'memory_bank'):
-                        # Direct MemoryModel case
-                        model[0].memory_bank.reload_memory_bank(memory_backup)
+                model[0].restore_memory_bank()
 
                 # get temporal embedding of source and destination nodes
                 # two Tensors, with shape (batch_size, node_feat_dim)

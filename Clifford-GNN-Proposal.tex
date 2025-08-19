@@ -1,0 +1,415 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{fullpage} % Smaller margins
+\usepackage{enumitem} % For custom list environments
+\usepackage{hyperref} % For clickable links and references
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdftitle={Clifford Algebra for Adaptive Spatio-Temporal Graph Neural Networks},
+    linkbordercolor={0 0 1}, % Blue borders for links
+    citecolor=green, % Citations in green
+}
+\usepackage{xcolor} % For coloring text
+\usepackage{cleveref} % For smart referencing
+\usepackage{booktabs} % For professional looking tables
+
+% Custom commands for math notation
+\newcommand{\Cl}[2]{\text{Cl}(#1, #2)} % Clifford Algebra Cl(p,q)
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Vs}{\mathcal{V}_S} % Spatial Vector Space
+\newcommand{\Vt}{\mathcal{V}_T} % Temporal Vector Space
+\newcommand{\Fs}{F_S} % Spatial feature dimension
+\newcommand{\Ft}{F_T} % Temporal feature dimension
+\newcommand{\Ds}{D_S} % Effective spatial dimension
+\newcommand{\Dt}{D_T} % Effective temporal dimension
+\newcommand{\Hs}{h_S} % Spatial features
+\newcommand{\Ht}{h_T} % Temporal features
+\newcommand{\Hst}{h_{ST}} % Unified spatial-temporal features
+\newcommand{\Svec}{\mathbf{S}} % Spatial vector
+\newcommand{\Tvec}{\mathbf{T}} % Temporal vector
+\newcommand{\Mvec}{\mathbf{M}} % Multivector embedding
+\newcommand{\MPN}{\text{MPN}}
+\newcommand{\CASMnet}{\text{CASM-Net}}
+\newcommand{\SMPN}{\text{SMPN}}
+\newcommand{\STG}{\text{CTDSTG}} % Continuous-Time Dynamic Spatio-Temporal Graph
+
+% Custom environments for models
+\newenvironment{modeldescription}[1]{%
+    \subsection*{Model #1: \MakeUppercase{#1} Layer}%
+    \begin{itemize}[leftmargin=*,noitemsep]%
+}{%
+    \end{itemize}%
+}
+
+\newenvironment{stepbystep}{%
+    \paragraph{Step-by-Step Mechanism (for each event $k$ in minibatch):}%
+    \begin{enumerate}[leftmargin=*,noitemsep]%
+}{%
+    \end{enumerate}%
+}
+
+\begin{document}
+
+\title{\textbf{Project Proposal: Geometric Algebra for Adaptive Spatio-Temporal Graph Neural Networks}}
+\author{Your Name(s)}
+\date{August 19, 2025}
+
+\maketitle
+
+\begin{abstract}
+This proposal outlines a research agenda for developing novel Clifford Algebra-based fusion layers for Continuous-Time Dynamic Spatio-Temporal Graphs (CTDSTGs). We introduce three progressive models: the Core Clifford Spatiotemporal Fusion (C-CASF) Layer, the Context-Adaptive Geometric Algebra (CAGA) Fusion Layer, and the Unified Spacetime Embedding (USE) Layer. Each model leverages the rich mathematical structure of Clifford Algebra to generate unified, interpretable spatio-temporal embeddings. C-CASF serves as a strong baseline, fusing features into a pure bivector within a fixed geometry. CAGA advances this by learning a local, event-specific metric for the underlying algebra, allowing for adaptive spatio-temporal coupling and general multivector outputs. The Unified Spacetime Embedding (USE) layer represents the most ambitious approach, directly parameterizing a holistic spacetime multivector within a dynamically learned unified spacetime geometry. This progression aims to push the boundaries of geometric deep learning by enabling models to adapt the very fabric of their representational space, promising unparalleled flexibility, expressivity, and interpretability for modeling dynamic graph phenomena.
+\end{abstract}
+
+\section{Introduction and Motivation}
+
+\subsection{The Challenge of Spatio-Temporal Representation in Dynamic Graphs}
+Graph Neural Networks (GNNs) have proven highly effective for learning on graph-structured data. However, extending GNNs to \textbf{Continuous-Time Dynamic Spatio-Temporal Graphs (\STG s)} presents significant challenges. \STG s are characterized by events occurring at arbitrary, continuous timestamps, affecting spatial entities whose relationships and attributes evolve dynamically. A critical hurdle is to effectively and \textbf{interpretably} fuse information from disparate spatial and temporal domains.
+
+Traditional fusion methods, such as simple concatenation or Multi-Layer Perceptron (MLP) operations, treat features as arbitrary numerical vectors. This often fails to capture the intrinsic geometric relationships and dynamic interplay between space and time, leading to less expressive and less interpretable representations. Furthermore, these methods typically produce static embeddings that struggle to adapt to the continuous evolution and varying contextual ``rules'' of the graph.
+
+\subsection{The Promise of Clifford Algebra}
+\textbf{Clifford Algebra (or Geometric Algebra)} provides a unified mathematical language for geometry, naturally representing and manipulating geometric entities (scalars, vectors, bivectors, trivectors, etc.) in a coordinate-free manner. Its rich algebraic structure allows for the intrinsic encoding of geometric properties like orientation, magnitude, and relationships between subspaces. This makes it a powerful candidate for modeling complex spatio-temporal interactions.
+
+\subsection{Project Goal}
+This project proposes the development of a novel family of Clifford Algebra-based fusion layers for \STG s, progressively advancing from fixed to fully adaptive geometric interpretations of spatio-temporal events. Each proposed model aims to generate \textbf{unified, richly interpretable spatio-temporal embeddings} by explicitly leveraging the geometric principles of Clifford Algebra.
+
+\subsection{Overview of Proposed Models}
+We propose three distinct but progressive models:
+\begin{enumerate}
+    \item \textbf{Core Clifford Spatiotemporal Fusion (C-CASF) Layer:} A foundational approach that fuses spatial and temporal features into a pure spatio-temporal bivector within a \textbf{fixed, predefined mixed-signature Clifford Algebra}. This serves as a strong baseline, demonstrating the core utility of geometric products for fusion.
+    \item \textbf{Context-Adaptive Geometric Algebra (CAGA) Fusion Layer:} An advancement that learns a \textbf{local, event-specific metric} for the Clifford Algebra. This allows the model to dynamically adapt the geometric ``rules'' of space and time, including their coupling, resulting in a more expressive general multivector output.
+    \item \textbf{Unified Spacetime Embedding (USE) Layer:} The most ambitious approach, directly parameterizing a \textbf{single, holistic spacetime multivector} within a \textbf{dynamically learned unified spacetime geometry}. This treats the event itself as a fundamental, context-adaptive geometric entity, pushing the boundaries of geometric deep learning.
+\end{enumerate}
+We believe that the latter two models, CAGA and USE, introduce significant conceptual and mathematical novelty, making them strong candidates for publication in top-tier computer science conferences like AAAI.
+
+\section{Background: Clifford Algebra Essentials}
+Clifford Algebra (Cl($V, q$)) is an algebra generated by a vector space $V$ equipped with a quadratic form $q$. Key concepts include:
+\begin{itemize}[noitemsep]
+    \item \textbf{Multivector:} An element of a Clifford Algebra, a linear combination of basis elements across different grades. It is a sum $A = A_0 + A_1 + A_2 + \dots + A_n$, where $A_k$ is the grade-$k$ component (a $k$-blade).
+    \begin{itemize}[noitemsep]
+        \item \textbf{Scalar (Grade 0):} $A_0 \in \R$.
+        \item \textbf{Vector (Grade 1):} $A_1 \in V$.
+        \item \textbf{Bivector (Grade 2):} $A_2 \in V \wedge V$, representing oriented planes.
+        \item \textbf{Pseudoscalar (Grade $n$):} $I = e_1 \wedge \dots \wedge e_n$, representing the oriented volume of the entire space.
+    \end{itemize}
+    \item \textbf{Quadratic Form ($q(v)$):} Defines how vectors square ($v^2 = q(v) \cdot 1$). This in turn defines the metric (inner product) for basis vectors.
+    \begin{itemize}[noitemsep]
+        \item \textbf{Euclidean Signature:} $e_i^2 = +1$.
+        \item \textbf{Minkowski Signature:} $f_i^2 = -1$.
+        \item \textbf{Mixed Signature:} Combination of positive and negative squares (e.g., $\Cl{p}{q}$).
+    \end{itemize}
+    \item \textbf{Geometric Product ($AB$):} The fundamental associative and distributive product. For vectors $a,b$, $ab = a \cdot b + a \wedge b$.
+    \begin{itemize}[noitemsep]
+        \item \textbf{Inner Product ($A \cdot B$):} Symmetric part of the geometric product (for vectors $a \cdot b = \frac{1}{2}(ab+ba)$), measures alignment, projection.
+        \item \textbf{Outer Product ($A \wedge B$):} Antisymmetric part of the geometric product (for vectors $a \wedge b = \frac{1}{2}(ab-ba)$), creates oriented subspaces, detects linear dependence. For $A_r$ and $B_s$, $A_r \wedge B_s = (-1)^{rs} B_s \wedge A_r$.
+    \end{itemize}
+    \item \textbf{Involutions:} Operations mapping a multivector to another by sign changes based on grade.
+    \begin{itemize}[noitemsep]
+        \item \textbf{Grade Involution ($A^*$):} Changes sign of odd-grade parts.
+        \item \textbf{Reversion ($A^\dagger$):} Reverses order of vectors in blades, changes orientation.
+        \item \textbf{Clifford Conjugation ($A^\ddagger$):} Combination ($A^\ddagger = (A^*)^\dagger$).
+    \end{itemize}
+    \item \textbf{Dual ($A^\sim$):} Typically $A^\sim = A I^{-1}$, maps a $k$-blade to its $(n-k)$-dimensional orthogonal complement.
+    \item \textbf{Commutator ($[A,B]$ or $A \times B$):} $[A,B] = \frac{1}{2}(AB - BA)$, measures non-commutativity, often relates to infinitesimal transformations and Lie algebras.
+\end{itemize}
+
+\section{Proposed Models for Spatio-Temporal Embedding}
+All models operate on a minibatch of \STG \ events. For each event $k$, we denote its spatial context features as $\Hs(k) \in \R^{\Fs}$ and its temporal context features as $\Ht(k) \in \R^{\Ft}$. These features typically come from upstream encoders (e.g., R-PEARL for spatial, LeTE for temporal), which may process raw node/edge attributes and timestamps.
+
+\begin{modeldescription}{C-CASF}
+    \item \textbf{Core Idea \& Philosophy}
+    C-CASF grounds spatio-temporal interactions in a \textbf{fixed, global Euclidean-spatial and Minkowski-temporal geometry}. It assumes space and time are fundamentally orthogonal and fuses their representations into a single bivector, representing an oriented causal plane.
+
+    \item \textbf{Mathematical Foundation \& Fixed Metric}
+    \begin{itemize}[noitemsep]
+        \item \textbf{Underlying Algebra:} A fixed mixed-signature Clifford Algebra $\Cl{\Ds}{\Dt}$ (e.g., $\Cl{3}{1}$ for 3D space and 1D time).
+        \item \textbf{Basis Vectors:} We select an orthonormal basis $\{e_1, \dots, e_{\Ds}\}$ for spatial dimensions and $\{f_1, \dots, f_{\Dt}\}$ for temporal dimensions.
+        \item \textbf{Fixed Metric Rules:}
+        \begin{itemize}[noitemsep]
+            \item Spatial dimensions: $e_i \cdot e_j = \delta_{ij}$ (Euclidean).
+            \item Temporal dimensions: $f_i \cdot f_j = -\delta_{ij}$ (Minkowski).
+            \item \textbf{Crucial Fixed Orthogonality:} $e_i \cdot f_j = 0$ for all $i \in \{1,\dots,\Ds\}, j \in \{1,\dots,\Dt\}$.
+        \end{itemize}
+    \end{itemize}
+
+    \item \textbf{Step-by-Step Mechanism (for each event $k$ in minibatch):}
+    \begin{enumerate}[noitemsep]
+        \item \textbf{Input Features:} $\Hs(k) \in \R^{\Fs}$ (spatial), $\Ht(k) \in \R^{\Ft}$ (temporal).
+        \item \textbf{Feature Lifting to Pure Vectors:}
+        \begin{itemize}[noitemsep]
+            \item \textbf{Spatial Projection MLP ($P_S$):} Takes $\Hs(k)$ and outputs coefficients for a $\Ds$-dimensional pure spatial vector $\Svec_k \in V_S \subset \Cl{\Ds}{\Dt}$.
+                \begin{itemize}[noitemsep]
+                    \item \texttt{S\_k\_coeffs = P\_S(Hs(k))} (where \texttt{S\_k\_coeffs} is a 1D tensor of shape \texttt{(\Ds,)}).
+                    \item \texttt{S\_k = sum(S\_k\_coeffs[i] * e\_i for i in range(Ds))}.
+                \end{itemize}
+            \item \textbf{Temporal Projection MLP ($P_T$):} Takes $\Ht(k)$ and outputs coefficients for a $\Dt$-dimensional pure temporal vector $\Tvec_k \in V_T \subset \Cl{\Ds}{\Dt}$.
+                \begin{itemize}[noitemsep]
+                    \item \texttt{T\_k\_coeffs = P\_T(Ht(k))} (where \texttt{T\_k\_coeffs} is a 1D tensor of shape \texttt{(\Dt,)}).
+                    \item \texttt{T\_k = sum(T\_k\_coeffs[j] * f\_j for j in range(Dt))}.
+                \end{itemize}
+        \end{itemize}
+        \item \textbf{Geometric Product Fusion:}
+        \begin{itemize}[noitemsep]
+            \item Compute the geometric product $\Mvec_k = \Svec_k * \Tvec_k$.
+            \item Due to the fixed strict orthogonality ($e_i \cdot f_j = 0$), the inner product component $\Svec_k \cdot \Tvec_k$ is identically zero.
+            \item Therefore, $\Mvec_k$ simplifies directly to the \textbf{pure outer product (bivector)}: $\Mvec_k = \Svec_k \wedge \Tvec_k$.
+            \item The coefficients of $\Mvec_k$ are derived from outer products of basis vectors: e.g., $\Svec_k \wedge \Tvec_k = \sum_{i=1}^{\Ds} \sum_{j=1}^{\Dt} (S_k\texttt{\_coeffs}[i] \cdot T_k\texttt{\_coeffs}[j]) (e_i \wedge f_j)$.
+        \end{itemize}
+        \item \textbf{Output:} $\Mvec_k \in \Cl{\Ds}{\Dt}$ (a pure spatio-temporal bivector). Its coefficients form a tensor of shape \texttt{(\Ds * \Dt,)} representing the basis bivectors.
+    \end{enumerate}
+
+    \item \textbf{Advantages \& Limitations:}
+    \begin{itemize}[noitemsep]
+        \item \textbf{Advantages:} Mathematically principled fusion, inherently captures orientation, simple interpretation as ``oriented causal plane.'' Strong baseline.
+        \item \textbf{Limitations:} Assumes rigid, global geometric rules. Cannot learn context-dependent coupling between space and time ($e_i \cdot f_j$ is always 0). Output is restricted to bivectors, potentially losing other relevant geometric information.
+    \end{itemize}
+\end{modeldescription}
+
+\clearpage
+
+\begin{modeldescription}{CAGA}
+    \item \textbf{Core Idea \& Philosophy}
+    CAGA allows the very \textbf{geometric rules (metric)} of space and time, including their interaction, to be dynamically inferred for each event. This enables the model to learn a ``warped'' or ``skewed'' local spacetime tailored to the specific context, leading to a richer, more flexible spatio-temporal embedding.
+
+    \item \textbf{Mathematical Foundation \& Adaptive Metric}
+    \begin{itemize}[noitemsep]
+        \item \textbf{Underlying Algebra:} An \textit{effective} mixed-signature Clifford Algebra $\Cl{d_s}{d_t}$ is dynamically instantiated \textit{per event $k$}.
+        \item \textbf{Basis Vectors:} Conceptually, we work with local basis vectors $\{e_1(k), \dots, e_{d_s}(k)\}$ and $\{f_1(k), \dots, f_{d_t}(k)\}$.
+        \item \textbf{Adaptive Metric Rules (Learned per event):} The inner products $e_i(k) \cdot e_j(k)$, $f_i(k) \cdot f_j(k)$, and crucially, $e_i(k) \cdot f_j(k)$ are all learnable outputs of a neural network.
+            \item This means $e_i(k) \cdot f_j(k)$ can now be \textbf{non-zero}, allowing for learned spatio-temporal coupling.
+    \end{itemize}
+
+    \item \textbf{Step-by-Step Mechanism (for each event $k$ in minibatch):}
+    \begin{enumerate}[noitemsep]
+        \item \textbf{Input Features:} $\Hs(k) \in \R^{\Fs}$, $\Ht(k) \in \R^{\Ft}$.
+        \item \textbf{Context-Adaptive Metric Parameterization (MPN):}
+        \begin{itemize}[noitemsep]
+            \item A learnable \textbf{Metric Parameterization Network (\MPN)} (e.g., an MLP or a series of small MLPs) takes the concatenated context $(\Hs(k), \Ht(k))$ as input.
+                \begin{itemize}[noitemsep]
+                    \item \texttt{MPN\_input = torch.cat([\Hs(k), \Ht(k)], dim=-1)}.
+                    \item \texttt{MPN\_output = MPN(MPN\_input)}.
+                \end{itemize}
+            \item \textbf{\MPN \ Output Interpretation:} \texttt{MPN\_output} is a tensor containing the coefficients that define the local metric $\mathbf{G}_k^{local}$ for event $k$.
+                \begin{itemize}[noitemsep]
+                    \item \texttt{G\_S\_coeffs(k)}: $d_s \times d_s$ symmetric matrix for $e_i(k) \cdot e_j(k)$. (Apply a layer to ensure positive definiteness or similar constraint).
+                    \item \texttt{G\_T\_coeffs(k)}: $d_t \times d_t$ symmetric matrix for $f_i(k) \cdot f_j(k)$. (Apply a layer to ensure negative definiteness or similar constraint).
+                    \item \texttt{G\_ST\_coeffs(k)}: $d_s \times d_t$ matrix for $e_i(k) \cdot f_j(k)$. (Can be regularized to encourage sparsity or orthogonality by default).
+                \end{itemize}
+            \item \textbf{Define Local Basis Operations:} These coefficients are used to compute the geometric product \textit{at runtime} for this event. For example, the specific rule for $e_i(k) * f_j(k)$ is now $e_i(k) \cdot f_j(k) + e_i(k) \wedge f_j(k)$, where $e_i(k) \cdot f_j(k)$ is the learned scalar value.
+        \end{itemize}
+        \item \textbf{Feature Lifting to General Multivectors (within $\Cl{d_s}{d_t}$):}
+        \begin{itemize}[noitemsep]
+            \item \textbf{Spatial Multivector Projection Network ($P_{S,multi}$):} Takes $\Hs(k)$ and outputs coefficients for a general spatial multivector $\Svec_k \in \Cl{d_s}{0}$. This $\Svec_k$ can have components across multiple grades (scalar, vector, bivector, etc., formed only by spatial basis vectors).
+                \begin{itemize}[noitemsep]
+                    \item \texttt{S\_k\_multivector\_coeffs = P\_S\_multi(Hs(k))} (tensor of shape \texttt{(2^ds,)} representing coefficients of all spatial basis blades).
+                \end{itemize}
+            \item \textbf{Temporal Multivector Projection Network ($P_{T,multi}$):} Takes $\Ht(k)$ and outputs coefficients for a general temporal multivector $\Tvec_k \in \Cl{0}{d_t}$. (Similarly, tensor of shape \texttt{(2^dt,)} for temporal basis blades).
+        \end{itemize}
+        \item \textbf{Context-Adaptive Geometric Product Fusion:}
+        \begin{itemize}[noitemsep]
+            \item Compute the geometric product: $\Mvec_k = \Svec_k * \Tvec_k$.
+            \item This product is computed \textbf{using the learned local metric $\mathbf{G}_k^{local}$} from \MPN.
+            \item Because the cross-space inner products $e_i(k) \cdot f_j(k)$ can now be non-zero, the inner product part $\Svec_k \cdot \Tvec_k$ will generally \textbf{not vanish}.
+            \item Therefore, $\Mvec_k$ will be a \textbf{general multivector} (a sum of different grades: scalar, vector, bivector, etc.).
+        \end{itemize}
+        \item \textbf{Output:} $\Mvec_k \in \Cl{d_s}{d_t}$ (a general multivector with learned basis properties). Output is a tensor of shape \texttt{(2^(ds+dt),)}.
+    \end{enumerate}
+
+    \item \textbf{Advantages \& Limitations:}
+    \begin{itemize}[noitemsep]
+        \item \textbf{Advantages:} Learns context-dependent geometric interactions, allowing for adaptive spatio-temporal coupling. Output is a general multivector, providing richer information.
+        \item \textbf{Limitations:} While the metric is adaptive, the initial feature streams are still conceptually separate spatial and temporal entities that are then fused. The interpretation of the ``product'' still relies on an external operation.
+    \end{itemize}
+\end{modeldescription}
+
+\clearpage
+
+\begin{modeldescription}{USE}
+    \item \textbf{Core Idea \& Philosophy}
+    USE fundamentally shifts the paradigm: a spatio-temporal event is not a composition of separate spatial and temporal parts, but a \textbf{holistic geometric entity directly parameterized within a unified spacetime}. The model simultaneously learns the optimal geometric ``fabric'' of this spacetime and the coefficients of the event within it, all adaptive to context.
+
+    \item \textbf{Mathematical Foundation \& Unified Adaptive Spacetime}
+    \begin{itemize}[noitemsep]
+        \item \textbf{Underlying Algebra:} A unified spacetime Clifford Algebra $\Cl{\Ds}{\Dt}$ is dynamically instantiated \textit{per event $k$}.
+        \item \textbf{Basis Vectors:} A single set of basis vectors $\{v_1(k), \dots, v_{\Ds+\Dt}(k)\}$ for the unified spacetime.
+        \item \textbf{Adaptive Unified Metric Rules:} The entire metric tensor $\mathbf{G}_k^{spacetime}$ (encoding all $v_i(k) \cdot v_j(k)$ inner products, including between spatial and temporal dimensions) is learned directly from the combined event context. This is the ultimate ``warping'' of spacetime for a given event.
+    \end{itemize}
+
+    \item \textbf{Step-by-Step Mechanism (for each event $k$ in minibatch):}
+    \begin{enumerate}[noitemsep]
+        \item \textbf{Unified Input Context Acquisition:}
+            \begin{itemize}[noitemsep]
+                \item Combine spatial and temporal features into a single input vector: $\Hst(k) = \texttt{concat}(\Hs(k), \Ht(k))$ (or processed by an initial MLP).
+            \end{itemize}
+        \item \textbf{Context-Adaptive Spacetime Metric Learning (CASM-Net):}
+        \begin{itemize}[noitemsep]
+            \item A learnable \textbf{Context-Adaptive Spacetime Metric Network (\CASMnet)} (neural network) takes $\Hst(k)$ as input.
+                \begin{itemize}[noitemsep]
+                    \item \texttt{CASM\_input = \Hst(k)}.
+                    \item \texttt{CASM\_output = CASM\_Net(CASM\_input)}.
+                \end{itemize}
+            \item \textbf{\CASMnet \ Output Interpretation:} \texttt{CASM\_output} is a tensor defining the entire $(\Ds+\Dt) \times (\Ds+\Dt)$ symmetric metric matrix $\mathbf{G}_k^{spacetime}$ for event $k$.
+                \begin{itemize}[noitemsep]
+                    \item This matrix directly provides all $v_i(k) \cdot v_j(k)$ values.
+                    \item (Careful parameterization is needed to ensure the correct signature (e.g., $\Ds$ positive, $\Dt$ negative eigenvalues for the corresponding blocks) and properties like positive-definiteness for spatial sub-block.)
+                \end{itemize}
+            \item \textbf{Define Unified Basis Operations:} This metric defines the geometric product operations for the basis elements of the unified spacetime for this event.
+        \end{itemize}
+        \item \textbf{Spacetime Multivector Parameterization (SMPN):}
+        \begin{itemize}[noitemsep]
+            \item A learnable \textbf{Spacetime Multivector Parameterization Network (\SMPN)} \textit{also} takes $\Hst(k)$ as input.
+                \begin{itemize}[noitemsep]
+                    \item \texttt{SMPN\_input = \Hst(k)}.
+                    \item \texttt{M\_k\_multivector\_coeffs = SMPN(SMPN\_input)}.
+                \end{itemize}
+            \item \textbf{\SMPN \ Output Interpretation:} \texttt{M\_k\_multivector\_coeffs} is a tensor containing the coefficients for \textit{all $2^{(\Ds+\Dt)}$ basis blades} of the general multivector $\Mvec_k \in \Cl{\Ds}{\Dt}$.
+            \item \texttt{M\_k = sum(M\_k\_multivector\_coeffs[idx] * BasisBlade\_idx\_for\_event\_k)}.
+            \item \textbf{Key Distinction:} $\Mvec_k$ is formed directly by the \SMPN, not via a geometric product of separate spatial and temporal entities. The ``fusion'' is implicit in the initial combined input and the direct parameterization of a unified spacetime entity.
+        \end{itemize}
+        \item \textbf{Output:} $\Mvec_k \in \Cl{\Ds}{\Dt}$ (a general multivector, a holistic spacetime entity, defined within its learned custom spacetime). Output is a tensor of shape \texttt{(2^(DS+DT),)}.
+    \end{enumerate}
+
+    \item \textbf{Advantages \& Limitations:}
+    \begin{itemize}[noitemsep]
+        \item \textbf{Advantages:} Truly holistic spatio-temporal representation from the outset. Maximally flexible in learning complex spacetime geometries and interactions. The event \textit{is} a geometric entity, not a product. Offers deep, contextual interpretability by analyzing the learned metric and the multivector's grades. Potentially captures subtle spatio-temporal ``warps'' in data.
+        \item \textbf{Limitations:} High conceptual complexity. Requires careful architectural design for stable metric learning (\CASMnet). Interpreting the \textit{learned metric itself} is challenging but offers immense insight. High dimensionality of multivectors can lead to computational overhead if $\Ds+\Dt$ is large.
+    \end{itemize}
+\end{modeldescription}
+
+\clearpage
+
+\section{Comparative Analysis and Novelty Statement}
+
+\begin{table}[h!]
+\centering
+\caption{Comparison of Clifford Algebra Fusion Paradigms}
+\label{tab:comparison}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Feature / Aspect} & \textbf{C-CASF} & \textbf{CAGA} & \textbf{USE} \\
+\midrule
+\textbf{Geometry} & Fixed, global & Adaptive, local metric & Adaptive, unified spacetime metric \\
+\textbf{S/T Input} & Separate & Separate & Unified \\
+\textbf{Fusion Type} & $\Svec \wedge \Tvec$ (fixed orthogonality) & $\Svec * \Tvec$ (learned orthogonality) & Direct Parameterization of $\Mvec_{event}$ \\
+\textbf{Output} & Pure Bivector & General Multivector & General Multivector \\
+\textbf{Interpretation} & Fixed causal plane & Contextual causal plane + other grades & Holistic spacetime event; its grades reflect the learned spacetime fabric. \\
+\textbf{Primary Novelty} & GA for fixed S/T fusion & Learning a \textit{local metric} of GA for fusion & \textbf{Directly parameterizing a \textit{unified spacetime multivector} within a \textit{learned unified spacetime metric}.} \\
+\textbf{Suitability for AAAI} & Strong Baseline (for clarity) & High (addresses key GNN limitations interpretably) & \textbf{Exceptional (conceptual breakthrough, pushes boundaries of geometric deep learning).} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Novelty Argument for Top-Tier Conference:}
+The progression from C-CASF to CAGA, and then to USE, represents a significant ladder of innovation. While C-CASF introduces a principled geometric fusion, CAGA elevates this by enabling the model to \textit{adapt its geometric understanding} to local contexts. However, \textbf{USE takes a truly unprecedented step} by proposing that a spatio-temporal event is not a composite of separately fused parts, but a \textbf{fundamental, holistic geometric entity whose very ``spacetime fabric'' is learned contextually}. This is a novel concept in machine learning, moving beyond learning \textit{features in a space} to learning the \textit{space itself} and the \textit{entity within it} simultaneously and adaptively. This resonates with advanced physics concepts (e.g., General Relativity's dynamic spacetime) and applies them to discrete computational graphs, offering unparalleled flexibility and interpretability.
+
+\section{Evaluation Plan (General)}
+To demonstrate the efficacy and novelty of these models, a comprehensive evaluation plan is essential:
+
+\subsection{Baselines:}
+\begin{itemize}[noitemsep]
+    \item Standard GNNs (GCN, GraphSAGE).
+    \item State-of-the-art \STG \ models (e.g., DyGNN, TGAT, GraphMixer).
+    \item Existing Equivariant GNNs (EGNN, SEGNN) that don't explicitly handle time or mixed-signature spaces.
+    \item The progression itself: C-CASF (as a strong baseline for CAGA/USE) and CAGA (as a strong baseline for USE).
+\end{itemize}
+
+\subsection{Datasets:}
+\begin{itemize}[noitemsep]
+    \item \textbf{Synthetic \STG s:} Design datasets that exhibit explicit spatio-temporal coupling, non-orthogonality, or varying local geometries to directly test the adaptive capabilities of CAGA and USE.
+        \begin{itemize}[noitemsep]
+            \item \textbf{Example:} Particle systems with varying interaction forces (spatial influence) over time (temporal flow), where the ``effective spacetime'' between particles changes based on their relative velocity or density.
+        \end{itemize}
+    \item \textbf{Real-world \STG s:}
+    \begin{itemize}[noitemsep]
+        \item \textbf{Molecular Dynamics (e.g., MD17, QM9):} Predicting properties or dynamics where spatial positions evolve over time.
+        \item \textbf{Traffic Networks:} Predicting traffic flow or congestion based on vehicle movements and time-of-day effects.
+        \item \textbf{Social Interaction Graphs (e.g., Reddit, Twitter interaction networks):} Modeling information diffusion or community evolution, where ``proximity'' in a social context can be time-dependent.
+    \end{itemize}
+\end{itemize}
+
+\subsection{Metrics:}
+\begin{itemize}[noitemsep]
+    \item \textbf{Standard Prediction Metrics:} MSE for regression, Accuracy/AUC for classification, etc.
+    \item \textbf{Equivariance Metrics:} Quantitatively assess how well the models maintain equivariance under spatio-temporal transformations.
+    \item \textbf{Robustness:} Evaluate performance under noisy inputs or missing data.
+    \item \textbf{Efficiency:} Analyze computational cost (runtime, memory) compared to baselines.
+\end{itemize}
+
+\subsection{Ablation Studies:}
+\begin{itemize}[noitemsep]
+    \item \textbf{Impact of Adaptive Metric:} Compare CAGA/USE with fixed metrics (like C-CASF) to quantify the benefits of adaptive geometry.
+    \item \textbf{Grade Analysis:} For CAGA/USE, analyze the learned contributions of different grades in $\Mvec_k$. Can specific grades be correlated with interpretable physical or social phenomena?
+    \item \textbf{Role of Cross-Space Coupling:} For CAGA/USE, ablate the $e_i(k) \cdot f_j(k)$ terms (force them to zero) to show the importance of learned spatio-temporal interactions.
+    \item \textbf{Effective Dimensions:} Evaluate how $\Ds, \Dt$ choices impact performance and expressivity.
+\end{itemize}
+
+\subsection{Interpretability Showcase:}
+\begin{itemize}[noitemsep]
+    \item For low-dimensional toy problems, visualize the dynamically learned metric (e.g., a ``warped grid'' in 2D space-1D time) for different event contexts.
+    \item Analyze the coefficients of $\Mvec_k$ for specific events and provide qualitative interpretations of ``what the multivector is telling us'' about the event's spatio-temporal geometry.
+\end{itemize}
+
+\section{Implementation Notes for AI Code Generation}
+The models will be implemented in a deep learning framework like PyTorch, leveraging its automatic differentiation capabilities. Custom CUDA kernels may be developed for performance-critical multivector operations if existing libraries are insufficient.
+
+\subsection{Multivector Representation:}
+\begin{itemize}[noitemsep]
+    \item A multivector $A \in \Cl{n}{}$ will be represented as a flat \texttt{torch.Tensor} of shape \texttt{(2\textasciicirc n,)}, where each element corresponds to the coefficient of a specific basis blade. The ordering of basis blades should be canonical (e.g., lexicographical order of indices $1, e_1, e_2, e_1 \wedge e_2, \dots, e_1 \wedge \dots \wedge e_n$).
+    \item The basis vectors $e_i$ (spatial) and $f_j$ (temporal) will be represented as specific multivectors with a single non-zero coefficient at their corresponding index.
+\end{itemize}
+
+\subsection{Clifford Algebra Operations (Custom Layers/Functions):}
+\begin{itemize}[noitemsep]
+    \item \textbf{Geometric Product (\texttt{geo\_product(A, B, metric\_tensor=None)}):}
+    \begin{itemize}[noitemsep]
+        \item Takes two multivector coefficient tensors \texttt{A\_coeffs}, \texttt{B\_coeffs} as input.
+        \item If \texttt{metric\_tensor} is \texttt{None} (C-CASF), use a predefined global metric lookup table to determine $e_i \cdot e_j$, $f_i \cdot f_j$, $e_i \cdot f_j$ (all 0).
+        \item If \texttt{metric\_tensor} is provided (CAGA, USE), use it to determine the inner products $v_i \cdot v_j$ for current event.
+        \item Implement as a combination of outer products and inner products of basis blades. The full geometric product requires knowledge of how all basis blade pairs multiply. This can be precomputed into a large lookup table for basis blade products, which is then used in a tensor contraction.
+        \item \texttt{C\_coeffs = torch.einsum('i,j,ijk->k', A\_coeffs, B\_coeffs, geo\_product\_table)}.
+    \end{itemize}
+    \item \textbf{Outer Product (\texttt{outer\_product(A, B)}):} Similar to geometric product, but only computes coefficients for grades $r+s$.
+    \item \textbf{Grade Projection (\texttt{grade\_projection(M, grade)}):} Selects only the coefficients corresponding to basis blades of a specific \texttt{grade}.
+    \item \textbf{Involutions (\texttt{grade\_involution(M)}, \texttt{reversion(M)}, \texttt{clifford\_conjugate(M)}):} Implement by applying sign changes to specific basis blade coefficients.
+\end{itemize}
+
+\subsection{Neural Network Components:}
+\begin{itemize}[noitemsep]
+    \item \textbf{MLP Structure:} \texttt{torch.nn.Sequential} of \texttt{torch.nn.Linear} layers with \texttt{torch.nn.ReLU} or \texttt{torch.nn.SiLU} activations.
+    \item \textbf{MPN (CAGA):}
+    \begin{itemize}[noitemsep]
+        \item Input: \texttt{torch.cat([h\_S, h\_T], dim=-1)} (\texttt{(Batch, F\_S+F\_T)}).
+        \item Output: \texttt{(Batch, D\_S*D\_S + D\_T*D\_T + D\_S*D\_T)} for flattened metric coefficients.
+        \item Reshape and apply constraints: For $G_S$, ensure symmetry and positive eigenvalues (e.g., output lower triangle, then reconstruct symmetric matrix, apply Softplus to diagonal or SVD with clipping). Similar for $G_T$ (negative eigenvalues). $G_{ST}$ can be direct.
+    \end{itemize}
+    \item \textbf{CASM-Net (USE):}
+    \begin{itemize}[noitemsep]
+        \item Input: \texttt{\Hst} (\texttt{(Batch, F\_S+F\_T)}).
+        \item Output: \texttt{(Batch, (D\_S+D\_T)*(D\_S+D\_T))} for flattened unified metric coefficients.
+        \item Reshape and apply more complex constraints for the unified spacetime metric to ensure signature and symmetry. This is a critical engineering challenge.
+    \end{itemize}
+    \item \textbf{SMPN (USE):}
+    \begin{itemize}[noitemsep]
+        \item Input: \texttt{\Hst} (\texttt{(Batch, F\_S+F\_T)}).
+        \item Output: \texttt{(Batch, 2\textasciicirc (DS+DT))} for all multivector coefficients directly.
+    \end{itemize}
+\end{itemize}
+
+\subsection{Handling Batches:}
+\begin{itemize}[noitemsep]
+    \item All operations should be vectorized across the batch dimension using \texttt{torch.einsum} or broadcasting. For instance, the \texttt{geo\_product\_table} would be \texttt{(2\textasciicirc n, 2\textasciicirc n, 2\textasciicirc n)} but for adaptive metrics, it would effectively be generated for each batch element, or a more complex \texttt{einsum} involving the metric directly for each batch element would be used.
+\end{itemize}
+
+\section{Conclusion}
+This project proposes a novel and progressive research agenda for integrating Clifford Algebra into \STG \ representation learning. By moving from fixed geometric assumptions (C-CASF) to context-adaptive local geometries (CAGA) and ultimately to a unified, dynamically learned spacetime embedding (USE), we aim to develop GNN architectures that are not only highly expressive and scalable but also provide deeply interpretable insights into the complex interplay of spatial and temporal dynamics.
+
+The proposed USE layer, in particular, represents a significant conceptual leap, offering a holistic and adaptive framework that is unprecedented in the field. This research has the potential to set new standards for understanding and modeling dynamic phenomena in various scientific and engineering domains. We are confident that this principled geometric approach will yield strong empirical results and contribute substantially to the field of geometric deep learning.
+
+\end{document}

@@ -385,6 +385,20 @@ def train_epoch(model, train_data, train_idx_data_loader, train_neg_sampler, opt
         if hasattr(train_data, 'edge_ids') and train_data.edge_ids is not None:
             batch_edge_ids = train_data.edge_ids[idx]
         
+        # Debug: Print batch shapes for first batch
+        if batch_idx == 0:
+            logger.info("=== BATCH INPUT SHAPES DEBUG ===")
+            logger.info(f"Batch size (config): {getattr(config, 'batch_size', 'Unknown')}")
+            logger.info(f"Actual batch size: {len(idx)}")
+            logger.info(f"batch_src_nodes shape: {batch_src_nodes.shape} | sample: {batch_src_nodes[:5]}")
+            logger.info(f"batch_dst_nodes shape: {batch_dst_nodes.shape} | sample: {batch_dst_nodes[:5]}")
+            logger.info(f"batch_timestamps shape: {batch_timestamps.shape} | sample: {batch_timestamps[:5]}")
+            if batch_edge_ids is not None:
+                logger.info(f"batch_edge_ids shape: {batch_edge_ids.shape} | sample: {batch_edge_ids[:5]}")
+            logger.info(f"Timestamp range: {batch_timestamps.min():.2f} - {batch_timestamps.max():.2f}")
+            logger.info(f"Node ID range: src=[{batch_src_nodes.min()}-{batch_src_nodes.max()}], dst=[{batch_dst_nodes.min()}-{batch_dst_nodes.max()}]")
+            logger.info("====================================")
+        
         # Sort by timestamp for memory-based models to ensure temporal ordering
         model_name = getattr(config, 'model_name', 'DyGMamba_CCASF')
         if model_name in ['TGN', 'DyRep', 'JODIE']:
@@ -435,6 +449,18 @@ def train_epoch(model, train_data, train_idx_data_loader, train_neg_sampler, opt
                 src_embeddings, dst_embeddings, time_diff_emb = result
             else:
                 src_embeddings, dst_embeddings = result
+
+            # Debug: Print embedding shapes for first batch
+            if batch_idx == 0:
+                logger.info("=== MODEL OUTPUT SHAPES DEBUG ===")
+                logger.info(f"src_embeddings shape: {src_embeddings.shape}")
+                logger.info(f"dst_embeddings shape: {dst_embeddings.shape}")
+                if isinstance(result, (list, tuple)) and len(result) == 3:
+                    logger.info(f"time_diff_emb shape: {time_diff_emb.shape}")
+                logger.info(f"Model type: {type(model[0])}")
+                if hasattr(model[0], 'ccasf_output_dim'):
+                    logger.info(f"C-CASF output dim: {model[0].ccasf_output_dim}")
+                logger.info("==================================")
 
             # Positive probabilities via link predictor
             if isinstance(model[1], MergeLayerTD) and isinstance(result, (list, tuple)) and len(result) == 3:
@@ -574,6 +600,23 @@ def train_model(config, logger):
     # Load data
     node_raw_features, edge_raw_features, full_data, train_data, val_data, test_data, new_node_val_data, new_node_test_data = load_data(config, logger)
     
+    # Debug: Print dataset information
+    logger.info("=== DATASET STRUCTURE DEBUG ===")
+    logger.info(f"Dataset: {config.dataset_name}")
+    logger.info(f"Node features shape: {node_raw_features.shape}")
+    logger.info(f"Edge features shape: {edge_raw_features.shape}")
+    logger.info(f"Full data interactions: {full_data.num_interactions}")
+    logger.info(f"Train data interactions: {train_data.num_interactions}")
+    logger.info(f"Val data interactions: {val_data.num_interactions}")  
+    logger.info(f"Test data interactions: {test_data.num_interactions}")
+    logger.info(f"Unique nodes in full data: {full_data.num_unique_nodes}")
+    logger.info(f"Time range: {full_data.node_interact_times.min():.2f} - {full_data.node_interact_times.max():.2f}")
+    logger.info(f"Node ID range: {min(full_data.unique_node_ids)} - {max(full_data.unique_node_ids)}")
+    logger.info("Sample interactions from train_data:")
+    for i in range(min(5, train_data.num_interactions)):
+        logger.info(f"  [{i}] src={train_data.src_node_ids[i]}, dst={train_data.dst_node_ids[i]}, time={train_data.node_interact_times[i]:.2f}")
+    logger.info("==================================")
+    
     # Create neighbor samplers
     sample_strategy = getattr(config, 'sample_neighbor_strategy', 'uniform')
     time_scaling_factor = getattr(config, 'time_scaling_factor', 0.0)
@@ -609,37 +652,24 @@ def train_model(config, logger):
     # For memory-based models, enforce global temporal ordering of training indices
     model_name = getattr(config, 'model_name', 'DyGMamba_CCASF')
     if model_name in ['TGN', 'DyRep', 'JODIE']:
-        # Sort all data indices by timestamp to ensure temporal ordering for memory-based models
+        # Sort training indices by timestamp to ensure temporal ordering
         train_time_sorted_indices = np.argsort(train_data.node_interact_times)
-        val_time_sorted_indices = np.argsort(val_data.node_interact_times)
-        train_eval_time_sorted_indices = np.argsort(train_data.node_interact_times)
-        new_val_time_sorted_indices = np.argsort(new_node_val_data.node_interact_times)
-        new_test_time_sorted_indices = np.argsort(new_node_test_data.node_interact_times)
-        
-        logger.info(f"Sorted all data by timestamp for memory-based model {model_name}")
-        
+        logger.info(f"Sorted training data by timestamp for memory-based model {model_name}")
         train_idx_loader = get_idx_data_loader(indices_list=train_time_sorted_indices.tolist(),
                                                batch_size=config.batch_size, shuffle=False)  # No shuffling for memory models
-        val_idx_loader = get_idx_data_loader(indices_list=val_time_sorted_indices.tolist(),
-                                             batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
-        train_eval_idx_loader = get_idx_data_loader(indices_list=train_eval_time_sorted_indices.tolist(),
-                                                    batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
-        new_val_idx_loader = get_idx_data_loader(indices_list=new_val_time_sorted_indices.tolist(),
-                                                 batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
-        new_test_idx_loader = get_idx_data_loader(indices_list=new_test_time_sorted_indices.tolist(),
-                                                  batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
     else:
         train_idx_loader = get_idx_data_loader(indices_list=list(range(len(train_data.src_node_ids))),
                                                batch_size=config.batch_size, shuffle=True)
-        val_idx_loader = get_idx_data_loader(indices_list=list(range(len(val_data.src_node_ids))),
+    
+    val_idx_loader = get_idx_data_loader(indices_list=list(range(len(val_data.src_node_ids))),
+                                         batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
+    # loaders for all splits
+    train_eval_idx_loader = get_idx_data_loader(indices_list=list(range(len(train_data.src_node_ids))),
+                                                batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
+    new_val_idx_loader = get_idx_data_loader(indices_list=list(range(len(new_node_val_data.src_node_ids))),
                                              batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
-        # loaders for all splits
-        train_eval_idx_loader = get_idx_data_loader(indices_list=list(range(len(train_data.src_node_ids))),
-                                                    batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
-        new_val_idx_loader = get_idx_data_loader(indices_list=list(range(len(new_node_val_data.src_node_ids))),
-                                                 batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
-        new_test_idx_loader = get_idx_data_loader(indices_list=list(range(len(new_node_test_data.src_node_ids))),
-                                                  batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
+    new_test_idx_loader = get_idx_data_loader(indices_list=list(range(len(new_node_test_data.src_node_ids))),
+                                              batch_size=getattr(config, 'eval_batch_size', config.batch_size), shuffle=False)
 
     # Build negative samplers with selected strategy
     neg_strategy = getattr(config, 'negative_sample_strategy', 'random')

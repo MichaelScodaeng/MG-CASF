@@ -33,7 +33,24 @@ class CCASFConfig:
         self.edge_feat_dim = 100   # Default, adjust as needed
         
         # Fusion method parameters
-        self.fusion_method = 'clifford'  # 'clifford', 'weighted', 'concat_mlp', 'cross_attention'
+        self.fusion_strategy = 'clifford'  # 'clifford', 'caga', 'use', 'full_clifford', 'weighted', 'concat_mlp', 'cross_attention'
+        self.fusion_method = 'clifford'  # Backward compatibility alias
+        
+        # Clifford-specific parameters
+        self.clifford_dim = 4
+        self.clifford_signature = 'euclidean'  # 'euclidean', 'minkowski', 'hyperbolic'
+        self.clifford_fusion_mode = 'progressive'  # 'progressive', 'parallel', 'adaptive'
+        
+        # CAGA parameters
+        self.caga_num_heads = 8
+        self.caga_hidden_dim = 128
+        
+        # USE parameters  
+        self.use_num_casm_layers = 3
+        self.use_num_smpn_layers = 3
+        self.use_hidden_dim = 128
+        
+        # Traditional fusion parameters
         self.weighted_fusion_learnable = True  # For weighted fusion method
         self.mlp_hidden_dim = None  # For concat_mlp fusion method (None = auto-size)
         self.mlp_num_layers = 2  # For concat_mlp fusion method
@@ -260,14 +277,101 @@ class CCASFConfig:
 
 # Predefined configurations for different experiments
 EXPERIMENT_CONFIGS = {
-    # Clifford algebra fusion (our proposed method)
+    # Clifford algebra fusion (baseline)
     'ccasf_clifford': {
         'use_ccasf': True,
         'use_rpearl': True, 
         'use_enhanced_lete': True,
         'spatial_dim': 64,
         'temporal_dim': 64,
-        'fusion_method': 'clifford'
+        'fusion_strategy': 'clifford',
+        'fusion_method': 'clifford'  # Backward compatibility
+    },
+    
+    # Clifford Adaptive Graph Attention (CAGA)
+    'ccasf_caga': {
+        'use_ccasf': True,
+        'use_rpearl': True,
+        'use_enhanced_lete': True,
+        'spatial_dim': 64,
+        'temporal_dim': 64,
+        'fusion_strategy': 'caga',
+        'fusion_method': 'caga',
+        'caga_num_heads': 8,
+        'caga_hidden_dim': 128,
+        'clifford_dim': 4,
+        'clifford_signature': 'euclidean'
+    },
+    
+    # Unified Spacetime Embeddings (USE)
+    'ccasf_use': {
+        'use_ccasf': True,
+        'use_rpearl': True,
+        'use_enhanced_lete': True,
+        'spatial_dim': 64,
+        'temporal_dim': 64,
+        'fusion_strategy': 'use',
+        'fusion_method': 'use',
+        'use_num_casm_layers': 3,
+        'use_num_smpn_layers': 3,
+        'use_hidden_dim': 128
+    },
+    
+    # Full Clifford Infrastructure (C-CASF + CAGA + USE)
+    'ccasf_full_clifford_progressive': {
+        'use_ccasf': True,
+        'use_rpearl': True,
+        'use_enhanced_lete': True,
+        'spatial_dim': 64,
+        'temporal_dim': 64,
+        'fusion_strategy': 'full_clifford',
+        'fusion_method': 'full_clifford',
+        'clifford_fusion_mode': 'progressive',
+        'clifford_dim': 4,
+        'clifford_signature': 'euclidean',
+        'caga_num_heads': 8,
+        'caga_hidden_dim': 128,
+        'use_num_casm_layers': 3,
+        'use_num_smpn_layers': 3,
+        'use_hidden_dim': 128
+    },
+    
+    # Full Clifford Infrastructure (parallel mode)
+    'ccasf_full_clifford_parallel': {
+        'use_ccasf': True,
+        'use_rpearl': True,
+        'use_enhanced_lete': True,
+        'spatial_dim': 64,
+        'temporal_dim': 64,
+        'fusion_strategy': 'full_clifford',
+        'fusion_method': 'full_clifford',
+        'clifford_fusion_mode': 'parallel',
+        'clifford_dim': 4,
+        'clifford_signature': 'euclidean',
+        'caga_num_heads': 8,
+        'caga_hidden_dim': 128,
+        'use_num_casm_layers': 3,
+        'use_num_smpn_layers': 3,
+        'use_hidden_dim': 128
+    },
+    
+    # Full Clifford Infrastructure (adaptive mode)
+    'ccasf_full_clifford_adaptive': {
+        'use_ccasf': True,
+        'use_rpearl': True,
+        'use_enhanced_lete': True,
+        'spatial_dim': 64,
+        'temporal_dim': 64,
+        'fusion_strategy': 'full_clifford',
+        'fusion_method': 'full_clifford',
+        'clifford_fusion_mode': 'adaptive',
+        'clifford_dim': 4,
+        'clifford_signature': 'euclidean',
+        'caga_num_heads': 8,
+        'caga_hidden_dim': 128,
+        'use_num_casm_layers': 3,
+        'use_num_smpn_layers': 3,
+        'use_hidden_dim': 128
     },
     
     # Learnable weighted fusion for comparison
@@ -277,6 +381,7 @@ EXPERIMENT_CONFIGS = {
         'use_enhanced_lete': True,
         'spatial_dim': 64,
         'temporal_dim': 64,
+        'fusion_strategy': 'weighted',
         'fusion_method': 'weighted',
         'weighted_fusion_learnable': True
     },
@@ -288,6 +393,7 @@ EXPERIMENT_CONFIGS = {
         'use_enhanced_lete': True,
         'spatial_dim': 64,
         'temporal_dim': 64,
+        'fusion_strategy': 'weighted',
         'fusion_method': 'weighted',
         'weighted_fusion_learnable': False
     },
@@ -299,6 +405,7 @@ EXPERIMENT_CONFIGS = {
         'use_enhanced_lete': True,
         'spatial_dim': 64,
         'temporal_dim': 64,
+        'fusion_strategy': 'concat_mlp',
         'fusion_method': 'concat_mlp',
         'mlp_hidden_dim': 256,
         'mlp_num_layers': 2
@@ -311,6 +418,7 @@ EXPERIMENT_CONFIGS = {
         'use_enhanced_lete': True,
         'spatial_dim': 64,
         'temporal_dim': 64,
+        'fusion_strategy': 'cross_attention',
         'fusion_method': 'cross_attention',
         'cross_attn_heads': 8
     },

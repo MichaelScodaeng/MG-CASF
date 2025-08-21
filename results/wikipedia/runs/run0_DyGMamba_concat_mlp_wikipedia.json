@@ -1,0 +1,17 @@
+{
+  "train_auc": 0.9886536523929471,
+  "train_ap": 0.9895574748022509,
+  "val_auc": 0.9902875624059149,
+  "val_ap": 0.991207140230922,
+  "test_auc": 0.9875708149926639,
+  "test_ap": 0.9891473492244994,
+  "new_val_auc": 0.9869327566076815,
+  "new_val_ap": 0.9881859554250696,
+  "new_test_auc": 0.9821770353768812,
+  "new_test_ap": 0.9842740672320271,
+  "negative_sample_strategy": "random",
+  "training_time": 6730.085693359375,
+  "run": 0,
+  "model_name": "DyGMamba",
+  "fusion_method": "concat_mlp"
+}

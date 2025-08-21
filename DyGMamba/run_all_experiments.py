@@ -11,10 +11,21 @@ import json
 from datetime import datetime
 
 # Define all experimental combinations
-MODELS = ['DyGMamba_CCASF', 'DyGMamba', 'TGAT', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer', 'TGN', 'DyRep', 'JODIE']
-DATASETS = ['wikipedia', 'reddit', 'mooc', 'lastfm', 'enron', 'Contacts', 'Flights']
-FUSION_STRATEGIES = ['ccasf_clifford', 'ccasf_weighted_learnable', 'ccasf_concat_mlp', 'ccasf_cross_attention']
-NEG_SAMPLING = ['random', 'historical', 'inductive']
+MODELS = ['DyGMamba'] #'DyGMamba_CCASF', 'TGAT', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer', 'TGN', 'DyRep', 'JODIE'
+DATASETS = ['wikipedia'] #, 'reddit', 'mooc', 'lastfm', 'enron', 'Contacts', 'Flights'
+FUSION_STRATEGIES = [
+    'ccasf_clifford',               # C-CASF baseline
+    'ccasf_caga',                   # Clifford Adaptive Graph Attention
+    'ccasf_use',                    # Unified Spacetime Embeddings
+    #'ccasf_full_clifford_progressive',  # Full Clifford (progressive)
+    #'ccasf_full_clifford_parallel',     # Full Clifford (parallel)
+    #'ccasf_full_clifford_adaptive',     # Full Clifford (adaptive)
+    #'ccasf_weighted_learnable',     # Learnable weighted fusion
+    #'ccasf_weighted_fixed',         # Fixed weighted fusion
+    #'ccasf_concat_mlp',            # Concatenation + MLP
+    #'ccasf_cross_attention'        # Cross-attention fusion
+]
+NEG_SAMPLING = ['random'] #, 'historical', 'inductive'
 
 # Baseline experiments (no C-CASF)
 BASELINE_EXPERIMENTS = ['baseline_original']
@@ -38,7 +49,7 @@ def run_experiment(model, dataset, experiment_type, neg_strategy='random', num_r
     
     try:
         start_time = time.time()
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=7200)  # 2 hour timeout
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=72000)  # 20 hour timeout
         end_time = time.time()
         
         experiment_info = {
@@ -104,7 +115,7 @@ def main():
             total_experiments += 1
     
     print(f"Total experiments to run: {total_experiments}")
-    print(f"Estimated time (50 epochs, 3 runs each): ~{total_experiments * 30} minutes")
+    print(f"Estimated time (100 epochs, 1 run each): ~{total_experiments * 60} minutes")
     
     # Confirmation
     response = input("Do you want to proceed? (y/N): ")
@@ -125,8 +136,8 @@ def main():
             dataset=dataset, 
             experiment_type=experiment_type,
             neg_strategy=neg_strategy,
-            num_runs=3,
-            num_epochs=50
+            num_runs=1,
+            num_epochs=100
         )
         
         experiment_results.append(result)

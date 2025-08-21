@@ -32,6 +32,7 @@ from models.GraphMixer import GraphMixer
 from models.DyGFormer import DyGFormer
 from models.MemoryModel import MemoryModel  # TGN, DyRep, JODIE
 from models.ccasf_wrapper import create_ccasf_model
+from models.universal_clifford_wrapper import create_universal_clifford_model
 from models.modules import MergeLayer, MergeLayerTD
 from utils.DataLoader import get_data_loader, get_idx_data_loader  
 from utils.EarlyStopping import EarlyStopping
@@ -93,15 +94,20 @@ def create_model(config, node_raw_features, edge_raw_features, neighbor_sampler,
     if model_name == 'DyGMamba_CCASF':
         logger.info("Creating model: DyGMamba_CCASF")
         ccasf_config = config.get_ccasf_config()
+        
+        # Extract fusion strategy from config
+        fusion_strategy = getattr(config, 'fusion_strategy', getattr(config, 'fusion_method', 'clifford'))
+        
         try:
             backbone = DyGMamba_CCASF(
                 node_raw_features=node_raw_features,
                 edge_raw_features=edge_raw_features,
                 neighbor_sampler=neighbor_sampler,
-                ccasf_config=ccasf_config,
+                fusion_strategy=fusion_strategy,
+                fusion_config=ccasf_config,
                 **model_config
             )
-            in_dim = getattr(backbone, 'ccasf_output_dim', node_raw_features.shape[1])
+            in_dim = getattr(backbone, 'clifford_output_dim', node_raw_features.shape[1])
             link_predictor = MergeLayer(input_dim1=in_dim, input_dim2=in_dim, hidden_dim=in_dim, output_dim=1)
             model = nn.Sequential(backbone, link_predictor)
 
@@ -109,16 +115,25 @@ def create_model(config, node_raw_features, edge_raw_features, neighbor_sampler,
             logger.info(f"Model created with {total_params} parameters")
 
             if getattr(config, 'use_ccasf', True):
-                logger.info("C-CASF Configuration:")
+                logger.info("Clifford Infrastructure Configuration:")
+                logger.info(f"  - Fusion strategy: {fusion_strategy}")
                 logger.info(f"  - Spatial dimension: {config.spatial_dim}")
                 logger.info(f"  - Temporal dimension: {config.temporal_dim}")
-                logger.info(f"  - Output dimension: {getattr(backbone, 'ccasf_output_dim', getattr(config, 'ccasf_output_dim', in_dim))}")
-                logger.info(f"  - Fusion method: {config.fusion_method}")
-                if config.fusion_method == 'weighted':
-                    logger.info(f"  - Weighted fusion learnable: {config.weighted_fusion_learnable}")
-                elif config.fusion_method == 'concat_mlp':
-                    logger.info(f"  - MLP hidden dim: {config.mlp_hidden_dim}")
-                    logger.info(f"  - MLP num layers: {config.mlp_num_layers}")
+                logger.info(f"  - Output dimension: {getattr(backbone, 'clifford_output_dim', getattr(config, 'clifford_output_dim', in_dim))}")
+                
+                if fusion_strategy in ['caga', 'full_clifford']:
+                    logger.info(f"  - Clifford dimension: {getattr(config, 'clifford_dim', 4)}")
+                    logger.info(f"  - Clifford signature: {getattr(config, 'clifford_signature', 'euclidean')}")
+                    
+                if fusion_strategy == 'full_clifford':
+                    logger.info(f"  - Clifford fusion mode: {getattr(config, 'clifford_fusion_mode', 'progressive')}")
+                    
+                if fusion_strategy == 'weighted':
+                    logger.info(f"  - Weighted fusion learnable: {getattr(config, 'weighted_fusion_learnable', True)}")
+                elif fusion_strategy == 'concat_mlp':
+                    logger.info(f"  - MLP hidden dim: {getattr(config, 'mlp_hidden_dim', 256)}")
+                    logger.info(f"  - MLP num layers: {getattr(config, 'mlp_num_layers', 2)}")
+                    
                 logger.info(f"  - Using R-PEARL: {config.use_rpearl}")
                 logger.info(f"  - Using Enhanced LeTE: {config.use_enhanced_lete}")
 
@@ -163,22 +178,27 @@ def create_model(config, node_raw_features, edge_raw_features, neighbor_sampler,
             dropout=config.dropout,
             device=config.device
         )
-        # Optionally wrap with CCASF if enabled
-        if getattr(config, 'use_ccasf', False):
-            logger.info("Wrapping TGAT with C-CASF")
+        
+        # Check if any Clifford fusion strategy is requested
+        fusion_strategy = getattr(config, 'fusion_strategy', getattr(config, 'fusion_method', 'baseline_original'))
+        
+        if fusion_strategy != 'baseline_original' and getattr(config, 'use_ccasf', False):
+            logger.info(f"Wrapping TGAT with Universal Clifford Infrastructure: {fusion_strategy}")
             ccasf_config = config.get_ccasf_config()
-            backbone = create_ccasf_model(
+            backbone = create_universal_clifford_model(
                 backbone_name='TGAT',
                 backbone_model=backbone,
-                ccasf_config=ccasf_config,
                 node_raw_features=node_raw_features,
                 edge_raw_features=edge_raw_features,
                 neighbor_sampler=neighbor_sampler,
+                fusion_strategy=fusion_strategy,
+                fusion_config=ccasf_config,
                 device=config.device
             )
-            in_dim = getattr(backbone, 'ccasf_output_dim', node_raw_features.shape[1])
+            in_dim = getattr(backbone, 'clifford_output_dim', node_raw_features.shape[1])
         else:
             in_dim = node_raw_features.shape[1]
+            
         link_predictor = MergeLayer(input_dim1=in_dim, input_dim2=in_dim, hidden_dim=in_dim, output_dim=1)
         model = nn.Sequential(backbone, link_predictor)
         total_params = get_parameter_sizes(model)
@@ -198,22 +218,27 @@ def create_model(config, node_raw_features, edge_raw_features, neighbor_sampler,
             dropout=config.dropout,
             device=config.device
         )
-        # Optionally wrap with CCASF if enabled
-        if getattr(config, 'use_ccasf', False):
-            logger.info("Wrapping CAWN with C-CASF")
+        
+        # Check if any Clifford fusion strategy is requested
+        fusion_strategy = getattr(config, 'fusion_strategy', getattr(config, 'fusion_method', 'baseline_original'))
+        
+        if fusion_strategy != 'baseline_original' and getattr(config, 'use_ccasf', False):
+            logger.info(f"Wrapping CAWN with Universal Clifford Infrastructure: {fusion_strategy}")
             ccasf_config = config.get_ccasf_config()
-            backbone = create_ccasf_model(
+            backbone = create_universal_clifford_model(
                 backbone_name='CAWN',
                 backbone_model=backbone,
-                ccasf_config=ccasf_config,
                 node_raw_features=node_raw_features,
                 edge_raw_features=edge_raw_features,
                 neighbor_sampler=neighbor_sampler,
+                fusion_strategy=fusion_strategy,
+                fusion_config=ccasf_config,
                 device=config.device
             )
-            in_dim = getattr(backbone, 'ccasf_output_dim', node_raw_features.shape[1])
+            in_dim = getattr(backbone, 'clifford_output_dim', node_raw_features.shape[1])
         else:
             in_dim = node_raw_features.shape[1]
+            
         link_predictor = MergeLayer(input_dim1=in_dim, input_dim2=in_dim, hidden_dim=in_dim, output_dim=1)
         model = nn.Sequential(backbone, link_predictor)
         total_params = get_parameter_sizes(model)
@@ -233,22 +258,27 @@ def create_model(config, node_raw_features, edge_raw_features, neighbor_sampler,
             dropout=config.dropout,
             device=config.device
         )
-        # Optionally wrap with CCASF if enabled
-        if getattr(config, 'use_ccasf', False):
-            logger.info("Wrapping TCL with C-CASF")
+        
+        # Check if any Clifford fusion strategy is requested
+        fusion_strategy = getattr(config, 'fusion_strategy', getattr(config, 'fusion_method', 'baseline_original'))
+        
+        if fusion_strategy != 'baseline_original' and getattr(config, 'use_ccasf', False):
+            logger.info(f"Wrapping TCL with Universal Clifford Infrastructure: {fusion_strategy}")
             ccasf_config = config.get_ccasf_config()
-            backbone = create_ccasf_model(
+            backbone = create_universal_clifford_model(
                 backbone_name='TCL',
                 backbone_model=backbone,
-                ccasf_config=ccasf_config,
                 node_raw_features=node_raw_features,
                 edge_raw_features=edge_raw_features,
                 neighbor_sampler=neighbor_sampler,
+                fusion_strategy=fusion_strategy,
+                fusion_config=ccasf_config,
                 device=config.device
             )
-            in_dim = getattr(backbone, 'ccasf_output_dim', node_raw_features.shape[1])
+            in_dim = getattr(backbone, 'clifford_output_dim', node_raw_features.shape[1])
         else:
             in_dim = node_raw_features.shape[1]
+            
         link_predictor = MergeLayer(input_dim1=in_dim, input_dim2=in_dim, hidden_dim=in_dim, output_dim=1)
         model = nn.Sequential(backbone, link_predictor)
         total_params = get_parameter_sizes(model)
@@ -267,22 +297,27 @@ def create_model(config, node_raw_features, edge_raw_features, neighbor_sampler,
             dropout=config.dropout,
             device=config.device
         )
-        # Optionally wrap with CCASF if enabled
-        if getattr(config, 'use_ccasf', False):
-            logger.info("Wrapping GraphMixer with C-CASF")
+        
+        # Check if any Clifford fusion strategy is requested
+        fusion_strategy = getattr(config, 'fusion_strategy', getattr(config, 'fusion_method', 'baseline_original'))
+        
+        if fusion_strategy != 'baseline_original' and getattr(config, 'use_ccasf', False):
+            logger.info(f"Wrapping GraphMixer with Universal Clifford Infrastructure: {fusion_strategy}")
             ccasf_config = config.get_ccasf_config()
-            backbone = create_ccasf_model(
+            backbone = create_universal_clifford_model(
                 backbone_name='GraphMixer',
                 backbone_model=backbone,
-                ccasf_config=ccasf_config,
                 node_raw_features=node_raw_features,
                 edge_raw_features=edge_raw_features,
                 neighbor_sampler=neighbor_sampler,
+                fusion_strategy=fusion_strategy,
+                fusion_config=ccasf_config,
                 device=config.device
             )
-            in_dim = getattr(backbone, 'ccasf_output_dim', node_raw_features.shape[1])
+            in_dim = getattr(backbone, 'clifford_output_dim', node_raw_features.shape[1])
         else:
             in_dim = node_raw_features.shape[1]
+            
         link_predictor = MergeLayer(input_dim1=in_dim, input_dim2=in_dim, hidden_dim=in_dim, output_dim=1)
         model = nn.Sequential(backbone, link_predictor)
         total_params = get_parameter_sizes(model)
@@ -304,22 +339,27 @@ def create_model(config, node_raw_features, edge_raw_features, neighbor_sampler,
             max_input_sequence_length=config.max_input_sequence_length,
             device=config.device
         )
-        # Optionally wrap with CCASF if enabled
-        if getattr(config, 'use_ccasf', False):
-            logger.info("Wrapping DyGFormer with C-CASF")
+        
+        # Check if any Clifford fusion strategy is requested
+        fusion_strategy = getattr(config, 'fusion_strategy', getattr(config, 'fusion_method', 'baseline_original'))
+        
+        if fusion_strategy != 'baseline_original' and getattr(config, 'use_ccasf', False):
+            logger.info(f"Wrapping DyGFormer with Universal Clifford Infrastructure: {fusion_strategy}")
             ccasf_config = config.get_ccasf_config()
-            backbone = create_ccasf_model(
+            backbone = create_universal_clifford_model(
                 backbone_name='DyGFormer',
                 backbone_model=backbone,
-                ccasf_config=ccasf_config,
                 node_raw_features=node_raw_features,
                 edge_raw_features=edge_raw_features,
                 neighbor_sampler=neighbor_sampler,
+                fusion_strategy=fusion_strategy,
+                fusion_config=ccasf_config,
                 device=config.device
             )
-            in_dim = getattr(backbone, 'ccasf_output_dim', node_raw_features.shape[1])
+            in_dim = getattr(backbone, 'clifford_output_dim', node_raw_features.shape[1])
         else:
             in_dim = node_raw_features.shape[1]
+            
         link_predictor = MergeLayer(input_dim1=in_dim, input_dim2=in_dim, hidden_dim=in_dim, output_dim=1)
         model = nn.Sequential(backbone, link_predictor)
         total_params = get_parameter_sizes(model)
@@ -339,22 +379,27 @@ def create_model(config, node_raw_features, edge_raw_features, neighbor_sampler,
             dropout=config.dropout,
             device=config.device
         )
-        # Optionally wrap with CCASF if enabled
-        if getattr(config, 'use_ccasf', False):
-            logger.info(f"Wrapping {model_name} with C-CASF")
+        
+        # Check if any Clifford fusion strategy is requested
+        fusion_strategy = getattr(config, 'fusion_strategy', getattr(config, 'fusion_method', 'baseline_original'))
+        
+        if fusion_strategy != 'baseline_original' and getattr(config, 'use_ccasf', False):
+            logger.info(f"Wrapping {model_name} with Universal Clifford Infrastructure: {fusion_strategy}")
             ccasf_config = config.get_ccasf_config()
-            backbone = create_ccasf_model(
+            backbone = create_universal_clifford_model(
                 backbone_name=model_name,
                 backbone_model=backbone,
-                ccasf_config=ccasf_config,
                 node_raw_features=node_raw_features,
                 edge_raw_features=edge_raw_features,
                 neighbor_sampler=neighbor_sampler,
+                fusion_strategy=fusion_strategy,
+                fusion_config=ccasf_config,
                 device=config.device
             )
-            in_dim = getattr(backbone, 'ccasf_output_dim', node_raw_features.shape[1])
+            in_dim = getattr(backbone, 'clifford_output_dim', node_raw_features.shape[1])
         else:
             in_dim = node_raw_features.shape[1]
+            
         link_predictor = MergeLayer(input_dim1=in_dim, input_dim2=in_dim, hidden_dim=in_dim, output_dim=1)
         model = nn.Sequential(backbone, link_predictor)
         total_params = get_parameter_sizes(model)

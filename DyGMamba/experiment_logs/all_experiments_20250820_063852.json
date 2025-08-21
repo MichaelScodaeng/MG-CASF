@@ -1,0 +1,58 @@
+{
+  "summary": {
+    "total_experiments": 4,
+    "successful": 0,
+    "failed": 4,
+    "success_rate": 0.0
+  },
+  "results": [
+    {
+      "model": "DyGMamba",
+      "dataset": "wikipedia",
+      "experiment_type": "ccasf_weighted_learnable",
+      "neg_strategy": "random",
+      "command": "python train_ccasf_link_prediction.py --model_name DyGMamba --dataset_name wikipedia --experiment_type ccasf_weighted_learnable --negative_sample_strategy random --num_runs 1 --num_epochs 100 --seed 42 --use_best_configs",
+      "duration": 36.04122257232666,
+      "timestamp": "2025-08-20T06:38:30.407794",
+      "success": false,
+      "stdout": "",
+      "stderr": "usage: train_ccasf_link_prediction.py [-h]\n                                      [--dataset_name {wikipedia,reddit,mooc,lastfm,enron,Contacts,Flights}]\n                                      [--experiment_type {ccasf_clifford,ccasf_caga,ccasf_use,ccasf_full_clifford_progressive,ccasf_full_clifford_parallel,ccasf_full_clifford_adaptive,ccasf_weighted_learnable,ccasf_weighted_fixed,ccasf_concat_mlp,ccasf_cross_attention,ccasf_clifford_large,ccasf_full,ccasf_basic,baseline_original,ablation_spatial,ablation_temporal}]\n                                      [--device DEVICE]\n                                      [--model_name {DyGMamba_CCASF,DyGMamba,TGAT,CAWN,TCL,GraphMixer,DyGFormer,TGN,DyRep,JODIE}]\n                                      [--num_runs NUM_RUNS]\n                                      [--negative_sample_strategy {random,historical,inductive}]\n                                      [--num_epochs NUM_EPOCHS] [--seed SEED]\ntrain_ccasf_link_prediction.py: error: unrecognized arguments: --use_best_configs\n/home/s2516027/anaconda3/envs/glce/lib/python3.11/tempfile.py:934: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/JOBs/tmpdir/pbs.13718125.spcc-adm1/tmp8h8u3rqj'>\n  _warnings.warn(warn_message, ResourceWarning)\n"
+    },
+    {
+      "model": "DyGMamba",
+      "dataset": "wikipedia",
+      "experiment_type": "ccasf_concat_mlp",
+      "neg_strategy": "random",
+      "command": "python train_ccasf_link_prediction.py --model_name DyGMamba --dataset_name wikipedia --experiment_type ccasf_concat_mlp --negative_sample_strategy random --num_runs 1 --num_epochs 100 --seed 42 --use_best_configs",
+      "duration": 7.864644527435303,
+      "timestamp": "2025-08-20T06:38:38.272630",
+      "success": false,
+      "stdout": "",
+      "stderr": "usage: train_ccasf_link_prediction.py [-h]\n                                      [--dataset_name {wikipedia,reddit,mooc,lastfm,enron,Contacts,Flights}]\n                                      [--experiment_type {ccasf_clifford,ccasf_caga,ccasf_use,ccasf_full_clifford_progressive,ccasf_full_clifford_parallel,ccasf_full_clifford_adaptive,ccasf_weighted_learnable,ccasf_weighted_fixed,ccasf_concat_mlp,ccasf_cross_attention,ccasf_clifford_large,ccasf_full,ccasf_basic,baseline_original,ablation_spatial,ablation_temporal}]\n                                      [--device DEVICE]\n                                      [--model_name {DyGMamba_CCASF,DyGMamba,TGAT,CAWN,TCL,GraphMixer,DyGFormer,TGN,DyRep,JODIE}]\n                                      [--num_runs NUM_RUNS]\n                                      [--negative_sample_strategy {random,historical,inductive}]\n                                      [--num_epochs NUM_EPOCHS] [--seed SEED]\ntrain_ccasf_link_prediction.py: error: unrecognized arguments: --use_best_configs\n/home/s2516027/anaconda3/envs/glce/lib/python3.11/tempfile.py:934: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/JOBs/tmpdir/pbs.13718125.spcc-adm1/tmpdekwj4ft'>\n  _warnings.warn(warn_message, ResourceWarning)\n"
+    },
+    {
+      "model": "DyGMamba",
+      "dataset": "wikipedia",
+      "experiment_type": "ccasf_cross_attention",
+      "neg_strategy": "random",
+      "command": "python train_ccasf_link_prediction.py --model_name DyGMamba --dataset_name wikipedia --experiment_type ccasf_cross_attention --negative_sample_strategy random --num_runs 1 --num_epochs 100 --seed 42 --use_best_configs",
+      "duration": 7.503764390945435,
+      "timestamp": "2025-08-20T06:38:45.776576",
+      "success": false,
+      "stdout": "",
+      "stderr": "usage: train_ccasf_link_prediction.py [-h]\n                                      [--dataset_name {wikipedia,reddit,mooc,lastfm,enron,Contacts,Flights}]\n                                      [--experiment_type {ccasf_clifford,ccasf_caga,ccasf_use,ccasf_full_clifford_progressive,ccasf_full_clifford_parallel,ccasf_full_clifford_adaptive,ccasf_weighted_learnable,ccasf_weighted_fixed,ccasf_concat_mlp,ccasf_cross_attention,ccasf_clifford_large,ccasf_full,ccasf_basic,baseline_original,ablation_spatial,ablation_temporal}]\n                                      [--device DEVICE]\n                                      [--model_name {DyGMamba_CCASF,DyGMamba,TGAT,CAWN,TCL,GraphMixer,DyGFormer,TGN,DyRep,JODIE}]\n                                      [--num_runs NUM_RUNS]\n                                      [--negative_sample_strategy {random,historical,inductive}]\n                                      [--num_epochs NUM_EPOCHS] [--seed SEED]\ntrain_ccasf_link_prediction.py: error: unrecognized arguments: --use_best_configs\n/home/s2516027/anaconda3/envs/glce/lib/python3.11/tempfile.py:934: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/JOBs/tmpdir/pbs.13718125.spcc-adm1/tmp4dlvoe9y'>\n  _warnings.warn(warn_message, ResourceWarning)\n"
+    },
+    {
+      "model": "DyGMamba",
+      "dataset": "wikipedia",
+      "experiment_type": "baseline_original",
+      "neg_strategy": "random",
+      "command": "python train_ccasf_link_prediction.py --model_name DyGMamba --dataset_name wikipedia --experiment_type baseline_original --negative_sample_strategy random --num_runs 1 --num_epochs 100 --seed 42 --use_best_configs",
+      "duration": 6.714579343795776,
+      "timestamp": "2025-08-20T06:38:52.491395",
+      "success": false,
+      "stdout": "",
+      "stderr": "usage: train_ccasf_link_prediction.py [-h]\n                                      [--dataset_name {wikipedia,reddit,mooc,lastfm,enron,Contacts,Flights}]\n                                      [--experiment_type {ccasf_clifford,ccasf_caga,ccasf_use,ccasf_full_clifford_progressive,ccasf_full_clifford_parallel,ccasf_full_clifford_adaptive,ccasf_weighted_learnable,ccasf_weighted_fixed,ccasf_concat_mlp,ccasf_cross_attention,ccasf_clifford_large,ccasf_full,ccasf_basic,baseline_original,ablation_spatial,ablation_temporal}]\n                                      [--device DEVICE]\n                                      [--model_name {DyGMamba_CCASF,DyGMamba,TGAT,CAWN,TCL,GraphMixer,DyGFormer,TGN,DyRep,JODIE}]\n                                      [--num_runs NUM_RUNS]\n                                      [--negative_sample_strategy {random,historical,inductive}]\n                                      [--num_epochs NUM_EPOCHS] [--seed SEED]\ntrain_ccasf_link_prediction.py: error: unrecognized arguments: --use_best_configs\n/home/s2516027/anaconda3/envs/glce/lib/python3.11/tempfile.py:934: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/JOBs/tmpdir/pbs.13718125.spcc-adm1/tmpmeofh04a'>\n  _warnings.warn(warn_message, ResourceWarning)\n"
+    }
+  ]
+}

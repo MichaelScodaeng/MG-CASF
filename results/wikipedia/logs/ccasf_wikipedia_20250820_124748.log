@@ -1,0 +1,1776 @@
+2025-08-20 12:47:48,609 - INFO - Starting experiment: baseline_original on wikipedia
+2025-08-20 12:47:48,609 - INFO - Device: cuda
+2025-08-20 12:47:48,609 - INFO - 
+==================================================
+2025-08-20 12:47:48,609 - INFO - Run 1/1 - DyGMamba with clifford
+2025-08-20 12:47:48,609 - INFO - ==================================================
+2025-08-20 12:47:48,612 - INFO - Starting training for wikipedia with C-CASF
+2025-08-20 12:47:48,612 - INFO - Configuration: {'dataset_name': 'wikipedia', 'model_name': 'DyGMamba', 'use_ccasf': False, 'spatial_dim': 64, 'temporal_dim': 64, 'ccasf_output_dim': 128, 'node_feat_dim': 172, 'edge_feat_dim': 172, 'fusion_strategy': 'clifford', 'fusion_method': 'clifford', 'clifford_dim': 4, 'clifford_signature': 'euclidean', 'clifford_fusion_mode': 'progressive', 'caga_num_heads': 8, 'caga_hidden_dim': 128, 'use_num_casm_layers': 3, 'use_num_smpn_layers': 3, 'use_hidden_dim': 128, 'weighted_fusion_learnable': True, 'mlp_hidden_dim': None, 'mlp_num_layers': 2, 'cross_attn_heads': 8, 'use_rpearl': False, 'use_enhanced_lete': False, 'rpearl_k': 16, 'rpearl_mlp_layers': 2, 'rpearl_hidden': 64, 'lete_p': 0.5, 'lete_layer_norm': True, 'lete_scale': True, 'time_feat_dim': 100, 'channel_embedding_dim': 100, 'patch_size': 1, 'num_layers': 2, 'num_heads': 2, 'dropout': 0.1, 'gamma': 0.5, 'max_input_sequence_length': 32, 'max_interaction_times': 5, 'learning_rate': 0.0001, 'weight_decay': 0.01, 'patience': 20, 'num_epochs': 100, 'batch_size': 200, 'eval_batch_size': 200, 'test_batch_size': 200, 'val_ratio': 0.15, 'test_ratio': 0.15, 'negative_sample_strategy': 'random', 'num_neighbors': 20, 'num_runs': 1, 'load_best_configs': False, 'device': 'cuda', 'num_workers': 8, 'seed': 42, 'data_root': '/home/s2516027/GLCE/processed_data', 'output_root': '/home/s2516027/GLCE/results', 'checkpoint_dir': '/home/s2516027/GLCE/checkpoints', 'log_every': 1, 'eval_every': 5, 'save_model': True, 'verbose': True}
+2025-08-20 12:47:48,613 - INFO - Loading wikipedia dataset...
+2025-08-20 12:47:49,035 - INFO - Number of nodes: 9228
+2025-08-20 12:47:49,036 - INFO - Number of edges: 157475
+2025-08-20 12:47:49,036 - INFO - Node feature dimension: 172
+2025-08-20 12:47:49,036 - INFO - Edge feature dimension: 172
+2025-08-20 12:47:49,036 - INFO - Training interactions: 79202
+2025-08-20 12:47:49,036 - INFO - Validation interactions: 23621
+2025-08-20 12:47:49,036 - INFO - Test interactions: 23621
+2025-08-20 12:47:49,036 - INFO - === DATASET STRUCTURE DEBUG ===
+2025-08-20 12:47:49,036 - INFO - Dataset: wikipedia
+2025-08-20 12:47:49,036 - INFO - Node features shape: (9228, 172)
+2025-08-20 12:47:49,036 - INFO - Edge features shape: (157475, 172)
+2025-08-20 12:47:49,036 - INFO - Full data interactions: 157474
+2025-08-20 12:47:49,036 - INFO - Train data interactions: 79202
+2025-08-20 12:47:49,036 - INFO - Val data interactions: 23621
+2025-08-20 12:47:49,036 - INFO - Test data interactions: 23621
+2025-08-20 12:47:49,036 - INFO - Unique nodes in full data: 9227
+2025-08-20 12:47:49,036 - INFO - Time range: 0.00 - 2678373.00
+2025-08-20 12:47:49,037 - INFO - Node ID range: 1 - 9227
+2025-08-20 12:47:49,037 - INFO - Sample interactions from train_data:
+2025-08-20 12:47:49,037 - INFO -   [0] src=2, dst=8229, time=36.00
+2025-08-20 12:47:49,037 - INFO -   [1] src=2, dst=8229, time=77.00
+2025-08-20 12:47:49,037 - INFO -   [2] src=2, dst=8229, time=150.00
+2025-08-20 12:47:49,037 - INFO -   [3] src=4, dst=8231, time=169.00
+2025-08-20 12:47:49,037 - INFO -   [4] src=2, dst=8229, time=217.00
+2025-08-20 12:47:49,037 - INFO - ==================================
+2025-08-20 12:47:49,560 - INFO - Creating model: DyGMamba
+2025-08-20 12:47:49,861 - INFO - Model created with 948692 parameters
+2025-08-20 12:47:49,904 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 12:47:49,904 - INFO - Batch size (config): 200
+2025-08-20 12:47:49,904 - INFO - Actual batch size: 200
+2025-08-20 12:47:49,904 - INFO - batch_src_nodes shape: (200,) | sample: [  9 434 786 217 268]
+2025-08-20 12:47:49,904 - INFO - batch_dst_nodes shape: (200,) | sample: [8471 8871 8620 8389 8807]
+2025-08-20 12:47:49,905 - INFO - batch_timestamps shape: (200,) | sample: [ 935122. 1014090.  916517. 1394931. 1078584.]
+2025-08-20 12:47:49,905 - INFO - batch_edge_ids shape: (200,) | sample: [51640 57019 50528 81217 61055]
+2025-08-20 12:47:49,905 - INFO - Timestamp range: 2836.00 - 1854615.00
+2025-08-20 12:47:49,905 - INFO - Node ID range: src=[2-6321], dst=[8229-9177]
+2025-08-20 12:47:49,905 - INFO - ====================================
+2025-08-20 12:47:50,151 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 12:47:50,151 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 12:47:50,151 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 12:47:50,151 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 12:47:50,151 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 12:47:50,151 - INFO - ==================================
+2025-08-20 12:49:11,997 - INFO - save model /home/s2516027/GLCE/checkpoints/wikipedia/models/DyGMamba/DyGMamba_clifford_seed42.pkl
+2025-08-20 12:49:12,165 - INFO - Saved best model to /home/s2516027/GLCE/checkpoints/wikipedia/best_models/best_DyGMamba_clifford_wikipedia.pth
+2025-08-20 12:49:12,165 - INFO - Epoch   0/100 | Loss: 0.4149 | Time: 82.27s
+2025-08-20 12:49:12,174 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 12:49:12,174 - INFO - Batch size (config): 200
+2025-08-20 12:49:12,174 - INFO - Actual batch size: 200
+2025-08-20 12:49:12,175 - INFO - batch_src_nodes shape: (200,) | sample: [ 612  616 5670 1183   69]
+2025-08-20 12:49:12,175 - INFO - batch_dst_nodes shape: (200,) | sample: [8610 8973 8684 8331 8455]
+2025-08-20 12:49:12,175 - INFO - batch_timestamps shape: (200,) | sample: [ 107660. 1435794. 1797954.  348354.   78346.]
+2025-08-20 12:49:12,175 - INFO - batch_edge_ids shape: (200,) | sample: [  4243  83446 106645  16637   3077]
+2025-08-20 12:49:12,175 - INFO - Timestamp range: 3182.00 - 1845631.00
+2025-08-20 12:49:12,176 - INFO - Node ID range: src=[2-6437], dst=[8229-9175]
+2025-08-20 12:49:12,176 - INFO - ====================================
+2025-08-20 12:49:12,239 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 12:49:12,239 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 12:49:12,239 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 12:49:12,239 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 12:49:12,239 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 12:49:12,239 - INFO - ==================================
+2025-08-20 12:50:20,362 - INFO - Epoch   1/100 | Loss: 0.2950 | Time: 68.20s
+2025-08-20 12:50:20,373 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 12:50:20,374 - INFO - Batch size (config): 200
+2025-08-20 12:50:20,374 - INFO - Actual batch size: 200
+2025-08-20 12:50:20,374 - INFO - batch_src_nodes shape: (200,) | sample: [ 198  343 1637 1470  446]
+2025-08-20 12:50:20,374 - INFO - batch_dst_nodes shape: (200,) | sample: [8376 8465 8806 8770 8433]
+2025-08-20 12:50:20,374 - INFO - batch_timestamps shape: (200,) | sample: [1252916.  857827.  316782.  369081.  509688.]
+2025-08-20 12:50:20,374 - INFO - batch_edge_ids shape: (200,) | sample: [71789 47436 14602 17607 25512]
+2025-08-20 12:50:20,374 - INFO - Timestamp range: 1531.00 - 1859567.00
+2025-08-20 12:50:20,374 - INFO - Node ID range: src=[2-6470], dst=[8229-9172]
+2025-08-20 12:50:20,374 - INFO - ====================================
+2025-08-20 12:50:20,501 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 12:50:20,503 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 12:50:20,503 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 12:50:20,503 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 12:50:20,503 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 12:50:20,503 - INFO - ==================================
+2025-08-20 12:51:26,376 - INFO - Epoch   2/100 | Loss: 0.2333 | Time: 66.01s
+2025-08-20 12:51:26,381 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 12:51:26,381 - INFO - Batch size (config): 200
+2025-08-20 12:51:26,381 - INFO - Actual batch size: 200
+2025-08-20 12:51:26,381 - INFO - batch_src_nodes shape: (200,) | sample: [ 945 4814  320 5934 1140]
+2025-08-20 12:51:26,382 - INFO - batch_dst_nodes shape: (200,) | sample: [8474 9020 8391 8261 8946]
+2025-08-20 12:51:26,382 - INFO - batch_timestamps shape: (200,) | sample: [ 316816. 1297594. 1265394. 1626935. 1734948.]
+2025-08-20 12:51:26,382 - INFO - batch_edge_ids shape: (200,) | sample: [ 14605  74592  72456  96549 103228]
+2025-08-20 12:51:26,382 - INFO - Timestamp range: 4853.00 - 1858090.00
+2025-08-20 12:51:26,382 - INFO - Node ID range: src=[2-6519], dst=[8229-9167]
+2025-08-20 12:51:26,382 - INFO - ====================================
+2025-08-20 12:51:26,445 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 12:51:26,445 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 12:51:26,445 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 12:51:26,445 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 12:51:26,445 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 12:51:26,445 - INFO - ==================================
+2025-08-20 12:52:34,571 - INFO - Epoch   3/100 | Loss: 0.2155 | Time: 68.19s
+2025-08-20 12:52:34,575 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 12:52:34,575 - INFO - Batch size (config): 200
+2025-08-20 12:52:34,575 - INFO - Actual batch size: 200
+2025-08-20 12:52:34,575 - INFO - batch_src_nodes shape: (200,) | sample: [1486  822 2241  411 2926]
+2025-08-20 12:52:34,575 - INFO - batch_dst_nodes shape: (200,) | sample: [8777 8629 8867 8295 8869]
+2025-08-20 12:52:34,576 - INFO - batch_timestamps shape: (200,) | sample: [ 458082.  123358. 1173651.  478755.  774711.]
+2025-08-20 12:52:34,576 - INFO - batch_edge_ids shape: (200,) | sample: [22384  4858 66393 23422 42302]
+2025-08-20 12:52:34,576 - INFO - Timestamp range: 50322.00 - 1862099.00
+2025-08-20 12:52:34,576 - INFO - Node ID range: src=[5-6504], dst=[8232-9177]
+2025-08-20 12:52:34,576 - INFO - ====================================
+2025-08-20 12:52:34,638 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 12:52:34,638 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 12:52:34,638 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 12:52:34,638 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 12:52:34,638 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 12:52:34,638 - INFO - ==================================
+2025-08-20 12:53:41,790 - INFO - Epoch   4/100 | Loss: 0.2005 | Time: 67.22s
+2025-08-20 12:53:41,797 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 12:53:41,797 - INFO - Batch size (config): 200
+2025-08-20 12:53:41,797 - INFO - Actual batch size: 200
+2025-08-20 12:53:41,797 - INFO - batch_src_nodes shape: (200,) | sample: [2135 2879 2607  756   25]
+2025-08-20 12:53:41,797 - INFO - batch_dst_nodes shape: (200,) | sample: [9164 8480 8880 8611 8252]
+2025-08-20 12:53:41,797 - INFO - batch_timestamps shape: (200,) | sample: [1686398. 1706498.  790668.  540612.   33547.]
+2025-08-20 12:53:41,797 - INFO - batch_edge_ids shape: (200,) | sample: [100174 101405  43252  27505   1215]
+2025-08-20 12:53:41,797 - INFO - Timestamp range: 21343.00 - 1837656.00
+2025-08-20 12:53:41,797 - INFO - Node ID range: src=[4-6176], dst=[8231-9177]
+2025-08-20 12:53:41,797 - INFO - ====================================
+2025-08-20 12:53:41,859 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 12:53:41,859 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 12:53:41,859 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 12:53:41,859 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 12:53:41,859 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 12:53:41,859 - INFO - ==================================
+2025-08-20 12:55:03,549 - INFO - save model /home/s2516027/GLCE/checkpoints/wikipedia/models/DyGMamba/DyGMamba_clifford_seed42.pkl
+2025-08-20 12:55:03,735 - INFO - Saved best model to /home/s2516027/GLCE/checkpoints/wikipedia/best_models/best_DyGMamba_clifford_wikipedia.pth
+2025-08-20 12:55:03,735 - INFO - Epoch   5/100 | Loss: 0.1952 | Time: 81.94s
+2025-08-20 12:55:03,743 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 12:55:03,743 - INFO - Batch size (config): 200
+2025-08-20 12:55:03,743 - INFO - Actual batch size: 200
+2025-08-20 12:55:03,744 - INFO - batch_src_nodes shape: (200,) | sample: [ 829 2940  995  367  641]
+2025-08-20 12:55:03,744 - INFO - batch_dst_nodes shape: (200,) | sample: [8968 8974 8635 8473 9107]
+2025-08-20 12:55:03,744 - INFO - batch_timestamps shape: (200,) | sample: [ 677556.  793873.  498804. 1229579. 1460253.]
+2025-08-20 12:55:03,744 - INFO - batch_edge_ids shape: (200,) | sample: [36144 43446 24803 70534 85509]
+2025-08-20 12:55:03,744 - INFO - Timestamp range: 3734.00 - 1857727.00
+2025-08-20 12:55:03,744 - INFO - Node ID range: src=[5-6406], dst=[8230-9178]
+2025-08-20 12:55:03,744 - INFO - ====================================
+2025-08-20 12:55:03,808 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 12:55:03,808 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 12:55:03,808 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 12:55:03,809 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 12:55:03,809 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 12:55:03,809 - INFO - ==================================
+2025-08-20 12:56:10,399 - INFO - Epoch   6/100 | Loss: 0.1819 | Time: 66.66s
+2025-08-20 12:56:10,407 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 12:56:10,407 - INFO - Batch size (config): 200
+2025-08-20 12:56:10,407 - INFO - Actual batch size: 200
+2025-08-20 12:56:10,407 - INFO - batch_src_nodes shape: (200,) | sample: [ 405 2066  180  791 6061]
+2025-08-20 12:56:10,407 - INFO - batch_dst_nodes shape: (200,) | sample: [8889 8372 8440 8410 8455]
+2025-08-20 12:56:10,408 - INFO - batch_timestamps shape: (200,) | sample: [ 498243.  406309.  206721.  115795. 1649048.]
+2025-08-20 12:56:10,408 - INFO - batch_edge_ids shape: (200,) | sample: [24763 19418  8771  4604 98028]
+2025-08-20 12:56:10,408 - INFO - Timestamp range: 2861.00 - 1857502.00
+2025-08-20 12:56:10,408 - INFO - Node ID range: src=[4-6517], dst=[8231-9177]
+2025-08-20 12:56:10,408 - INFO - ====================================
+2025-08-20 12:56:10,560 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 12:56:10,566 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 12:56:10,566 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 12:56:10,566 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 12:56:10,566 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 12:56:10,566 - INFO - ==================================
+2025-08-20 12:57:15,755 - INFO - Epoch   7/100 | Loss: 0.1720 | Time: 65.36s
+2025-08-20 12:57:15,758 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 12:57:15,758 - INFO - Batch size (config): 200
+2025-08-20 12:57:15,759 - INFO - Actual batch size: 200
+2025-08-20 12:57:15,759 - INFO - batch_src_nodes shape: (200,) | sample: [ 297    7   69 2847  206]
+2025-08-20 12:57:15,759 - INFO - batch_dst_nodes shape: (200,) | sample: [8303 8234 8557 8707 8404]
+2025-08-20 12:57:15,759 - INFO - batch_timestamps shape: (200,) | sample: [  43270.   33026.  722979.  596708. 1453309.]
+2025-08-20 12:57:15,759 - INFO - batch_edge_ids shape: (200,) | sample: [ 1523  1192 39172 31149 84832]
+2025-08-20 12:57:15,759 - INFO - Timestamp range: 8913.00 - 1855589.00
+2025-08-20 12:57:15,759 - INFO - Node ID range: src=[4-6368], dst=[8231-9175]
+2025-08-20 12:57:15,759 - INFO - ====================================
+2025-08-20 12:57:15,820 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 12:57:15,820 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 12:57:15,820 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 12:57:15,820 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 12:57:15,820 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 12:57:15,820 - INFO - ==================================
+2025-08-20 12:58:22,060 - INFO - Epoch   8/100 | Loss: 0.1622 | Time: 66.30s
+2025-08-20 12:58:22,064 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 12:58:22,064 - INFO - Batch size (config): 200
+2025-08-20 12:58:22,064 - INFO - Actual batch size: 200
+2025-08-20 12:58:22,064 - INFO - batch_src_nodes shape: (200,) | sample: [ 618  641 1069 2392 2558]
+2025-08-20 12:58:22,064 - INFO - batch_dst_nodes shape: (200,) | sample: [8570 9107 8706 8849 8925]
+2025-08-20 12:58:22,064 - INFO - batch_timestamps shape: (200,) | sample: [ 496378. 1630783.  585302.  492578.  571576.]
+2025-08-20 12:58:22,064 - INFO - batch_edge_ids shape: (200,) | sample: [24629 96810 30198 24385 29176]
+2025-08-20 12:58:22,064 - INFO - Timestamp range: 3032.00 - 1842006.00
+2025-08-20 12:58:22,064 - INFO - Node ID range: src=[4-6492], dst=[8231-9165]
+2025-08-20 12:58:22,064 - INFO - ====================================
+2025-08-20 12:58:22,127 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 12:58:22,127 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 12:58:22,127 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 12:58:22,127 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 12:58:22,127 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 12:58:22,127 - INFO - ==================================
+2025-08-20 12:59:28,107 - INFO - Epoch   9/100 | Loss: 0.1521 | Time: 66.05s
+2025-08-20 12:59:28,111 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 12:59:28,111 - INFO - Batch size (config): 200
+2025-08-20 12:59:28,111 - INFO - Actual batch size: 200
+2025-08-20 12:59:28,111 - INFO - batch_src_nodes shape: (200,) | sample: [   5 1050  222 3355 1322]
+2025-08-20 12:59:28,111 - INFO - batch_dst_nodes shape: (200,) | sample: [8726 8699 8303 8755 9112]
+2025-08-20 12:59:28,112 - INFO - batch_timestamps shape: (200,) | sample: [ 452694. 1421008.  113986. 1544296. 1601734.]
+2025-08-20 12:59:28,112 - INFO - batch_edge_ids shape: (200,) | sample: [22070 82509  4538 91536 94999]
+2025-08-20 12:59:28,112 - INFO - Timestamp range: 4968.00 - 1850217.00
+2025-08-20 12:59:28,112 - INFO - Node ID range: src=[5-6486], dst=[8238-9177]
+2025-08-20 12:59:28,112 - INFO - ====================================
+2025-08-20 12:59:28,174 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 12:59:28,174 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 12:59:28,174 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 12:59:28,174 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 12:59:28,174 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 12:59:28,174 - INFO - ==================================
+2025-08-20 13:00:51,381 - INFO - save model /home/s2516027/GLCE/checkpoints/wikipedia/models/DyGMamba/DyGMamba_clifford_seed42.pkl
+2025-08-20 13:00:51,553 - INFO - Saved best model to /home/s2516027/GLCE/checkpoints/wikipedia/best_models/best_DyGMamba_clifford_wikipedia.pth
+2025-08-20 13:00:51,554 - INFO - Epoch  10/100 | Loss: 0.1397 | Time: 83.45s
+2025-08-20 13:00:51,565 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:00:51,565 - INFO - Batch size (config): 200
+2025-08-20 13:00:51,565 - INFO - Actual batch size: 200
+2025-08-20 13:00:51,565 - INFO - batch_src_nodes shape: (200,) | sample: [5789 4378 3920  756 1993]
+2025-08-20 13:00:51,565 - INFO - batch_dst_nodes shape: (200,) | sample: [9146 9046 9027 8611 8981]
+2025-08-20 13:00:51,565 - INFO - batch_timestamps shape: (200,) | sample: [1811802. 1052359.  925716.  108062. 1121653.]
+2025-08-20 13:00:51,565 - INFO - batch_edge_ids shape: (200,) | sample: [107414  59723  51100   4263  63628]
+2025-08-20 13:00:51,565 - INFO - Timestamp range: 150.00 - 1862639.00
+2025-08-20 13:00:51,566 - INFO - Node ID range: src=[2-6314], dst=[8229-9178]
+2025-08-20 13:00:51,566 - INFO - ====================================
+2025-08-20 13:00:51,631 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:00:51,631 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:00:51,631 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:00:51,631 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:00:51,631 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:00:51,631 - INFO - ==================================
+2025-08-20 13:01:57,952 - INFO - Epoch  11/100 | Loss: 0.1348 | Time: 66.40s
+2025-08-20 13:01:57,957 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:01:57,957 - INFO - Batch size (config): 200
+2025-08-20 13:01:57,957 - INFO - Actual batch size: 200
+2025-08-20 13:01:57,957 - INFO - batch_src_nodes shape: (200,) | sample: [1075 5734   43 3913 2826]
+2025-08-20 13:01:57,957 - INFO - batch_dst_nodes shape: (200,) | sample: [8913 9046 8268 9006 8685]
+2025-08-20 13:01:57,957 - INFO - batch_timestamps shape: (200,) | sample: [ 639260. 1524711. 1436956.  996271. 1359184.]
+2025-08-20 13:01:57,957 - INFO - batch_edge_ids shape: (200,) | sample: [33551 90093 83488 55636 78521]
+2025-08-20 13:01:57,957 - INFO - Timestamp range: 2805.00 - 1860526.00
+2025-08-20 13:01:57,957 - INFO - Node ID range: src=[2-6459], dst=[8229-9167]
+2025-08-20 13:01:57,958 - INFO - ====================================
+2025-08-20 13:01:58,021 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:01:58,021 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:01:58,021 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:01:58,021 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:01:58,021 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:01:58,021 - INFO - ==================================
+2025-08-20 13:03:05,773 - INFO - Epoch  12/100 | Loss: 0.1327 | Time: 67.82s
+2025-08-20 13:03:05,777 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:03:05,777 - INFO - Batch size (config): 200
+2025-08-20 13:03:05,778 - INFO - Actual batch size: 200
+2025-08-20 13:03:05,778 - INFO - batch_src_nodes shape: (200,) | sample: [4849  309  125  401 3866]
+2025-08-20 13:03:05,778 - INFO - batch_dst_nodes shape: (200,) | sample: [9083 8452 8333 8766 9034]
+2025-08-20 13:03:05,778 - INFO - batch_timestamps shape: (200,) | sample: [1272075.  215835.  889691.  573508.  991001.]
+2025-08-20 13:03:05,778 - INFO - batch_edge_ids shape: (200,) | sample: [72841  9142 49218 29340 55342]
+2025-08-20 13:03:05,778 - INFO - Timestamp range: 11748.00 - 1846119.00
+2025-08-20 13:03:05,778 - INFO - Node ID range: src=[5-6507], dst=[8248-9172]
+2025-08-20 13:03:05,778 - INFO - ====================================
+2025-08-20 13:03:05,840 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:03:05,840 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:03:05,840 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:03:05,840 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:03:05,840 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:03:05,840 - INFO - ==================================
+2025-08-20 13:04:15,044 - INFO - Epoch  13/100 | Loss: 0.1305 | Time: 69.27s
+2025-08-20 13:04:15,049 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:04:15,049 - INFO - Batch size (config): 200
+2025-08-20 13:04:15,049 - INFO - Actual batch size: 200
+2025-08-20 13:04:15,049 - INFO - batch_src_nodes shape: (200,) | sample: [ 424  405 3350  525 4884]
+2025-08-20 13:04:15,049 - INFO - batch_dst_nodes shape: (200,) | sample: [8778 8321 9101 8711 8964]
+2025-08-20 13:04:15,049 - INFO - batch_timestamps shape: (200,) | sample: [1305379.  245072. 1508750. 1534587. 1206513.]
+2025-08-20 13:04:15,049 - INFO - batch_edge_ids shape: (200,) | sample: [75057 10814 89289 90859 68790]
+2025-08-20 13:04:15,049 - INFO - Timestamp range: 59806.00 - 1851956.00
+2025-08-20 13:04:15,050 - INFO - Node ID range: src=[2-6397], dst=[8229-9177]
+2025-08-20 13:04:15,050 - INFO - ====================================
+2025-08-20 13:04:15,114 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:04:15,114 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:04:15,114 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:04:15,114 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:04:15,114 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:04:15,114 - INFO - ==================================
+2025-08-20 13:05:21,263 - INFO - Epoch  14/100 | Loss: 0.1346 | Time: 66.22s
+2025-08-20 13:05:21,269 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:05:21,269 - INFO - Batch size (config): 200
+2025-08-20 13:05:21,269 - INFO - Actual batch size: 200
+2025-08-20 13:05:21,269 - INFO - batch_src_nodes shape: (200,) | sample: [2747 3813   69  692  157]
+2025-08-20 13:05:21,270 - INFO - batch_dst_nodes shape: (200,) | sample: [9058 8909 8874 8467 9087]
+2025-08-20 13:05:21,270 - INFO - batch_timestamps shape: (200,) | sample: [1139320. 1065960. 1028879. 1508048. 1240373.]
+2025-08-20 13:05:21,270 - INFO - batch_edge_ids shape: (200,) | sample: [64606 60487 58114 89256 71148]
+2025-08-20 13:05:21,270 - INFO - Timestamp range: 2570.00 - 1861764.00
+2025-08-20 13:05:21,270 - INFO - Node ID range: src=[2-6327], dst=[8229-9177]
+2025-08-20 13:05:21,270 - INFO - ====================================
+2025-08-20 13:05:21,331 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:05:21,332 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:05:21,332 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:05:21,332 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:05:21,332 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:05:21,332 - INFO - ==================================
+2025-08-20 13:06:42,753 - INFO - save model /home/s2516027/GLCE/checkpoints/wikipedia/models/DyGMamba/DyGMamba_clifford_seed42.pkl
+2025-08-20 13:06:42,957 - INFO - Saved best model to /home/s2516027/GLCE/checkpoints/wikipedia/best_models/best_DyGMamba_clifford_wikipedia.pth
+2025-08-20 13:06:42,958 - INFO - Epoch  15/100 | Loss: 0.1323 | Time: 81.69s
+2025-08-20 13:06:42,968 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:06:42,968 - INFO - Batch size (config): 200
+2025-08-20 13:06:42,968 - INFO - Actual batch size: 200
+2025-08-20 13:06:42,968 - INFO - batch_src_nodes shape: (200,) | sample: [3965 1449  830 2792 1335]
+2025-08-20 13:06:42,969 - INFO - batch_dst_nodes shape: (200,) | sample: [9040 8541 8610 8235 8752]
+2025-08-20 13:06:42,969 - INFO - batch_timestamps shape: (200,) | sample: [ 937637. 1385891.  124926.  588198.  481666.]
+2025-08-20 13:06:42,969 - INFO - batch_edge_ids shape: (200,) | sample: [51833 80739  4898 30414 23652]
+2025-08-20 13:06:42,969 - INFO - Timestamp range: 1630.00 - 1859930.00
+2025-08-20 13:06:42,969 - INFO - Node ID range: src=[4-6415], dst=[8231-9153]
+2025-08-20 13:06:42,969 - INFO - ====================================
+2025-08-20 13:06:43,034 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:06:43,034 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:06:43,034 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:06:43,034 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:06:43,034 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:06:43,034 - INFO - ==================================
+2025-08-20 13:07:48,940 - INFO - Epoch  16/100 | Loss: 0.1436 | Time: 65.98s
+2025-08-20 13:07:48,943 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:07:48,943 - INFO - Batch size (config): 200
+2025-08-20 13:07:48,943 - INFO - Actual batch size: 200
+2025-08-20 13:07:48,944 - INFO - batch_src_nodes shape: (200,) | sample: [1032 2017 4851 1088  249]
+2025-08-20 13:07:48,944 - INFO - batch_dst_nodes shape: (200,) | sample: [8693 8864 8403 8988 8542]
+2025-08-20 13:07:48,944 - INFO - batch_timestamps shape: (200,) | sample: [ 647511.  402521. 1202013. 1816607.  451179.]
+2025-08-20 13:07:48,944 - INFO - batch_edge_ids shape: (200,) | sample: [ 33912  19164  68424 107698  21978]
+2025-08-20 13:07:48,944 - INFO - Timestamp range: 10086.00 - 1862357.00
+2025-08-20 13:07:48,944 - INFO - Node ID range: src=[4-6262], dst=[8231-9167]
+2025-08-20 13:07:48,944 - INFO - ====================================
+2025-08-20 13:07:49,006 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:07:49,006 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:07:49,006 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:07:49,006 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:07:49,006 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:07:49,006 - INFO - ==================================
+2025-08-20 13:08:55,905 - INFO - Epoch  17/100 | Loss: 0.1319 | Time: 66.96s
+2025-08-20 13:08:55,911 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:08:55,911 - INFO - Batch size (config): 200
+2025-08-20 13:08:55,911 - INFO - Actual batch size: 200
+2025-08-20 13:08:55,911 - INFO - batch_src_nodes shape: (200,) | sample: [1035   18 1322 2931 1035]
+2025-08-20 13:08:55,911 - INFO - batch_dst_nodes shape: (200,) | sample: [9053 8319 8750 8950 9053]
+2025-08-20 13:08:55,911 - INFO - batch_timestamps shape: (200,) | sample: [1440644.   37052.  233548.  840592. 1423560.]
+2025-08-20 13:08:55,911 - INFO - batch_edge_ids shape: (200,) | sample: [83769  1335 10070 46149 82668]
+2025-08-20 13:08:55,911 - INFO - Timestamp range: 10392.00 - 1849878.00
+2025-08-20 13:08:55,911 - INFO - Node ID range: src=[2-6273], dst=[8229-9118]
+2025-08-20 13:08:55,911 - INFO - ====================================
+2025-08-20 13:08:55,976 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:08:55,976 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:08:55,976 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:08:55,976 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:08:55,976 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:08:55,976 - INFO - ==================================
+2025-08-20 13:10:03,248 - INFO - Epoch  18/100 | Loss: 0.1319 | Time: 67.34s
+2025-08-20 13:10:03,251 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:10:03,251 - INFO - Batch size (config): 200
+2025-08-20 13:10:03,251 - INFO - Actual batch size: 200
+2025-08-20 13:10:03,252 - INFO - batch_src_nodes shape: (200,) | sample: [3702  179  164 1140  271]
+2025-08-20 13:10:03,252 - INFO - batch_dst_nodes shape: (200,) | sample: [8377 8363 8549 8350 8433]
+2025-08-20 13:10:03,252 - INFO - batch_timestamps shape: (200,) | sample: [1696936. 1825716.  342620. 1487967.  836881.]
+2025-08-20 13:10:03,252 - INFO - batch_edge_ids shape: (200,) | sample: [100783 108312  16293  87807  45811]
+2025-08-20 13:10:03,252 - INFO - Timestamp range: 29742.00 - 1861393.00
+2025-08-20 13:10:03,252 - INFO - Node ID range: src=[2-6492], dst=[8229-9172]
+2025-08-20 13:10:03,252 - INFO - ====================================
+2025-08-20 13:10:03,314 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:10:03,314 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:10:03,314 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:10:03,314 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:10:03,314 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:10:03,314 - INFO - ==================================
+2025-08-20 13:11:11,436 - INFO - Epoch  19/100 | Loss: 0.1309 | Time: 68.19s
+2025-08-20 13:11:11,440 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:11:11,440 - INFO - Batch size (config): 200
+2025-08-20 13:11:11,440 - INFO - Actual batch size: 200
+2025-08-20 13:11:11,440 - INFO - batch_src_nodes shape: (200,) | sample: [  13    5  850 1468    5]
+2025-08-20 13:11:11,440 - INFO - batch_dst_nodes shape: (200,) | sample: [8239 8726 8642 8769 8726]
+2025-08-20 13:11:11,440 - INFO - batch_timestamps shape: (200,) | sample: [1787386.  286600.  601484.  582472. 1067823.]
+2025-08-20 13:11:11,440 - INFO - batch_edge_ids shape: (200,) | sample: [105925  13371  31500  30019  60564]
+2025-08-20 13:11:11,440 - INFO - Timestamp range: 20156.00 - 1853228.00
+2025-08-20 13:11:11,440 - INFO - Node ID range: src=[2-5992], dst=[8229-9169]
+2025-08-20 13:11:11,440 - INFO - ====================================
+2025-08-20 13:11:11,502 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:11:11,502 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:11:11,502 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:11:11,502 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:11:11,502 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:11:11,502 - INFO - ==================================
+2025-08-20 13:12:35,616 - INFO - save model /home/s2516027/GLCE/checkpoints/wikipedia/models/DyGMamba/DyGMamba_clifford_seed42.pkl
+2025-08-20 13:12:35,777 - INFO - Saved best model to /home/s2516027/GLCE/checkpoints/wikipedia/best_models/best_DyGMamba_clifford_wikipedia.pth
+2025-08-20 13:12:35,778 - INFO - Epoch  20/100 | Loss: 0.1312 | Time: 84.34s
+2025-08-20 13:12:35,788 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:12:35,788 - INFO - Batch size (config): 200
+2025-08-20 13:12:35,788 - INFO - Actual batch size: 200
+2025-08-20 13:12:35,788 - INFO - batch_src_nodes shape: (200,) | sample: [3714 2136   91  679  206]
+2025-08-20 13:12:35,788 - INFO - batch_dst_nodes shape: (200,) | sample: [9019 8238 8306 9045 8404]
+2025-08-20 13:12:35,789 - INFO - batch_timestamps shape: (200,) | sample: [ 854591. 1186291. 1249919. 1122882.  847421.]
+2025-08-20 13:12:35,789 - INFO - batch_edge_ids shape: (200,) | sample: [47194 67278 71638 63725 46687]
+2025-08-20 13:12:35,789 - INFO - Timestamp range: 12018.00 - 1838558.00
+2025-08-20 13:12:35,789 - INFO - Node ID range: src=[4-6178], dst=[8231-9167]
+2025-08-20 13:12:35,789 - INFO - ====================================
+2025-08-20 13:12:35,855 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:12:35,855 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:12:35,855 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:12:35,855 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:12:35,855 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:12:35,855 - INFO - ==================================
+2025-08-20 13:13:44,546 - INFO - Epoch  21/100 | Loss: 0.1298 | Time: 68.77s
+2025-08-20 13:13:44,550 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:13:44,550 - INFO - Batch size (config): 200
+2025-08-20 13:13:44,550 - INFO - Actual batch size: 200
+2025-08-20 13:13:44,550 - INFO - batch_src_nodes shape: (200,) | sample: [ 571  679  995 4273 3120]
+2025-08-20 13:13:44,550 - INFO - batch_dst_nodes shape: (200,) | sample: [8412 8350 8634 8685 8967]
+2025-08-20 13:13:44,550 - INFO - batch_timestamps shape: (200,) | sample: [ 147337. 1562405.  495733. 1693411.  745656.]
+2025-08-20 13:13:44,551 - INFO - batch_edge_ids shape: (200,) | sample: [  5920  92667  24593 100578  40317]
+2025-08-20 13:13:44,551 - INFO - Timestamp range: 24049.00 - 1852245.00
+2025-08-20 13:13:44,551 - INFO - Node ID range: src=[2-6333], dst=[8229-9172]
+2025-08-20 13:13:44,551 - INFO - ====================================
+2025-08-20 13:13:44,614 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:13:44,614 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:13:44,614 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:13:44,614 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:13:44,614 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:13:44,614 - INFO - ==================================
+2025-08-20 13:14:52,577 - INFO - Epoch  22/100 | Loss: 0.1310 | Time: 68.03s
+2025-08-20 13:14:52,585 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:14:52,585 - INFO - Batch size (config): 200
+2025-08-20 13:14:52,585 - INFO - Actual batch size: 200
+2025-08-20 13:14:52,585 - INFO - batch_src_nodes shape: (200,) | sample: [4815  957  411 1053 1039]
+2025-08-20 13:14:52,586 - INFO - batch_dst_nodes shape: (200,) | sample: [9082 8676 8295 8701 8250]
+2025-08-20 13:14:52,586 - INFO - batch_timestamps shape: (200,) | sample: [1566221.  323966. 1077070.  173617.  536857.]
+2025-08-20 13:14:52,586 - INFO - batch_edge_ids shape: (200,) | sample: [92920 15031 60975  7449 27212]
+2025-08-20 13:14:52,586 - INFO - Timestamp range: 1301.00 - 1838268.00
+2025-08-20 13:14:52,586 - INFO - Node ID range: src=[4-6098], dst=[8231-9167]
+2025-08-20 13:14:52,586 - INFO - ====================================
+2025-08-20 13:14:52,657 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:14:52,657 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:14:52,657 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:14:52,658 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:14:52,658 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:14:52,658 - INFO - ==================================
+2025-08-20 13:15:59,322 - INFO - Epoch  23/100 | Loss: 0.1310 | Time: 66.74s
+2025-08-20 13:15:59,326 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:15:59,326 - INFO - Batch size (config): 200
+2025-08-20 13:15:59,326 - INFO - Actual batch size: 200
+2025-08-20 13:15:59,326 - INFO - batch_src_nodes shape: (200,) | sample: [2735  367  125   13 2567]
+2025-08-20 13:15:59,326 - INFO - batch_dst_nodes shape: (200,) | sample: [8934 8473 8333 8239 9017]
+2025-08-20 13:15:59,327 - INFO - batch_timestamps shape: (200,) | sample: [ 908499.  248367.  142354.  448642. 1811760.]
+2025-08-20 13:15:59,327 - INFO - batch_edge_ids shape: (200,) | sample: [ 50118  11020   5605  21848 107411]
+2025-08-20 13:15:59,327 - INFO - Timestamp range: 7410.00 - 1845788.00
+2025-08-20 13:15:59,327 - INFO - Node ID range: src=[13-6374], dst=[8238-9164]
+2025-08-20 13:15:59,327 - INFO - ====================================
+2025-08-20 13:15:59,390 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:15:59,390 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:15:59,391 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:15:59,391 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:15:59,391 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:15:59,391 - INFO - ==================================
+2025-08-20 13:17:07,902 - INFO - Epoch  24/100 | Loss: 0.1508 | Time: 68.58s
+2025-08-20 13:17:07,906 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:17:07,906 - INFO - Batch size (config): 200
+2025-08-20 13:17:07,906 - INFO - Actual batch size: 200
+2025-08-20 13:17:07,906 - INFO - batch_src_nodes shape: (200,) | sample: [ 225  872 1203 1322  391]
+2025-08-20 13:17:07,906 - INFO - batch_dst_nodes shape: (200,) | sample: [8394 8605 8946 9112 8485]
+2025-08-20 13:17:07,906 - INFO - batch_timestamps shape: (200,) | sample: [1048905.  592181. 1760189. 1715789.  105220.]
+2025-08-20 13:17:07,906 - INFO - batch_edge_ids shape: (200,) | sample: [ 59497  30737 104396 102024   4113]
+2025-08-20 13:17:07,906 - INFO - Timestamp range: 5007.00 - 1843117.00
+2025-08-20 13:17:07,907 - INFO - Node ID range: src=[9-6471], dst=[8235-9167]
+2025-08-20 13:17:07,907 - INFO - ====================================
+2025-08-20 13:17:07,970 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:17:07,971 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:17:07,971 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:17:07,971 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:17:07,971 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:17:07,971 - INFO - ==================================
+2025-08-20 13:18:30,982 - INFO - Epoch  25/100 | Loss: 0.1349 | Time: 83.08s
+2025-08-20 13:18:30,988 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:18:30,988 - INFO - Batch size (config): 200
+2025-08-20 13:18:30,988 - INFO - Actual batch size: 200
+2025-08-20 13:18:30,988 - INFO - batch_src_nodes shape: (200,) | sample: [1297 2734 3613  206  980]
+2025-08-20 13:18:30,988 - INFO - batch_dst_nodes shape: (200,) | sample: [8269 8933 9104 8380 8246]
+2025-08-20 13:18:30,988 - INFO - batch_timestamps shape: (200,) | sample: [1095676.  625564. 1426319. 1038323.  602418.]
+2025-08-20 13:18:30,989 - INFO - batch_edge_ids shape: (200,) | sample: [61974 32864 82852 58811 31565]
+2025-08-20 13:18:30,989 - INFO - Timestamp range: 12716.00 - 1857567.00
+2025-08-20 13:18:30,989 - INFO - Node ID range: src=[2-6338], dst=[8229-9177]
+2025-08-20 13:18:30,989 - INFO - ====================================
+2025-08-20 13:18:31,054 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:18:31,054 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:18:31,054 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:18:31,054 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:18:31,054 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:18:31,054 - INFO - ==================================
+2025-08-20 13:19:37,943 - INFO - Epoch  26/100 | Loss: 0.1314 | Time: 66.96s
+2025-08-20 13:19:37,947 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:19:37,947 - INFO - Batch size (config): 200
+2025-08-20 13:19:37,947 - INFO - Actual batch size: 200
+2025-08-20 13:19:37,947 - INFO - batch_src_nodes shape: (200,) | sample: [4779 1190 6129 4710  495]
+2025-08-20 13:19:37,947 - INFO - batch_dst_nodes shape: (200,) | sample: [9070 8275 8609 9070 8624]
+2025-08-20 13:19:37,947 - INFO - batch_timestamps shape: (200,) | sample: [1185528.  989566. 1694745. 1172605.  677177.]
+2025-08-20 13:19:37,948 - INFO - batch_edge_ids shape: (200,) | sample: [ 67222  55247 100677  66307  36104]
+2025-08-20 13:19:37,948 - INFO - Timestamp range: 4408.00 - 1840931.00
+2025-08-20 13:19:37,948 - INFO - Node ID range: src=[5-6336], dst=[8234-9174]
+2025-08-20 13:19:37,948 - INFO - ====================================
+2025-08-20 13:19:38,010 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:19:38,010 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:19:38,010 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:19:38,010 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:19:38,010 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:19:38,010 - INFO - ==================================
+2025-08-20 13:20:44,639 - INFO - Epoch  27/100 | Loss: 0.1326 | Time: 66.70s
+2025-08-20 13:20:44,645 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:20:44,645 - INFO - Batch size (config): 200
+2025-08-20 13:20:44,645 - INFO - Actual batch size: 200
+2025-08-20 13:20:44,646 - INFO - batch_src_nodes shape: (200,) | sample: [ 580 1998 1183 3858  168]
+2025-08-20 13:20:44,646 - INFO - batch_dst_nodes shape: (200,) | sample: [8695 8858 8343 9033 9167]
+2025-08-20 13:20:44,646 - INFO - batch_timestamps shape: (200,) | sample: [1119686. 1051947.  352370.  965367. 1810192.]
+2025-08-20 13:20:44,646 - INFO - batch_edge_ids shape: (200,) | sample: [ 63475  59687  16805  53803 107334]
+2025-08-20 13:20:44,646 - INFO - Timestamp range: 6937.00 - 1842315.00
+2025-08-20 13:20:44,646 - INFO - Node ID range: src=[2-6182], dst=[8229-9167]
+2025-08-20 13:20:44,646 - INFO - ====================================
+2025-08-20 13:20:44,708 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:20:44,708 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:20:44,708 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:20:44,708 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:20:44,708 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:20:44,708 - INFO - ==================================
+2025-08-20 13:21:51,587 - INFO - Epoch  28/100 | Loss: 0.1293 | Time: 66.95s
+2025-08-20 13:21:51,591 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:21:51,591 - INFO - Batch size (config): 200
+2025-08-20 13:21:51,591 - INFO - Actual batch size: 200
+2025-08-20 13:21:51,591 - INFO - batch_src_nodes shape: (200,) | sample: [1858 4149 2908  493  125]
+2025-08-20 13:21:51,591 - INFO - batch_dst_nodes shape: (200,) | sample: [8350 9050 8412 8471 8333]
+2025-08-20 13:21:51,591 - INFO - batch_timestamps shape: (200,) | sample: [ 955821. 1645745. 1599558.   72518.  801059.]
+2025-08-20 13:21:51,591 - INFO - batch_edge_ids shape: (200,) | sample: [53175 97806 94895  2758 43910]
+2025-08-20 13:21:51,591 - INFO - Timestamp range: 6602.00 - 1852205.00
+2025-08-20 13:21:51,591 - INFO - Node ID range: src=[2-6171], dst=[8229-9166]
+2025-08-20 13:21:51,591 - INFO - ====================================
+2025-08-20 13:21:51,653 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:21:51,653 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:21:51,654 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:21:51,654 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:21:51,654 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:21:51,654 - INFO - ==================================
+2025-08-20 13:22:59,373 - INFO - Epoch  29/100 | Loss: 0.1297 | Time: 67.79s
+2025-08-20 13:22:59,378 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:22:59,378 - INFO - Batch size (config): 200
+2025-08-20 13:22:59,378 - INFO - Actual batch size: 200
+2025-08-20 13:22:59,378 - INFO - batch_src_nodes shape: (200,) | sample: [ 125 2178 2879 3346  322]
+2025-08-20 13:22:59,379 - INFO - batch_dst_nodes shape: (200,) | sample: [8333 8881 8480 8874 9052]
+2025-08-20 13:22:59,379 - INFO - batch_timestamps shape: (200,) | sample: [ 799048.  653911.  970412.  733519. 1490833.]
+2025-08-20 13:22:59,379 - INFO - batch_edge_ids shape: (200,) | sample: [43764 34355 54183 39670 88023]
+2025-08-20 13:22:59,379 - INFO - Timestamp range: 22275.00 - 1861696.00
+2025-08-20 13:22:59,379 - INFO - Node ID range: src=[5-6258], dst=[8234-9167]
+2025-08-20 13:22:59,379 - INFO - ====================================
+2025-08-20 13:22:59,441 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:22:59,441 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:22:59,441 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:22:59,441 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:22:59,441 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:22:59,441 - INFO - ==================================
+2025-08-20 13:24:22,820 - INFO - save model /home/s2516027/GLCE/checkpoints/wikipedia/models/DyGMamba/DyGMamba_clifford_seed42.pkl
+2025-08-20 13:24:23,011 - INFO - Saved best model to /home/s2516027/GLCE/checkpoints/wikipedia/best_models/best_DyGMamba_clifford_wikipedia.pth
+2025-08-20 13:24:23,011 - INFO - Epoch  30/100 | Loss: 0.1295 | Time: 83.64s
+2025-08-20 13:24:23,015 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:24:23,016 - INFO - Batch size (config): 200
+2025-08-20 13:24:23,016 - INFO - Actual batch size: 200
+2025-08-20 13:24:23,016 - INFO - batch_src_nodes shape: (200,) | sample: [ 499 6081 1183 4531  401]
+2025-08-20 13:24:23,016 - INFO - batch_dst_nodes shape: (200,) | sample: [9139 9164 8331 9068 8738]
+2025-08-20 13:24:23,016 - INFO - batch_timestamps shape: (200,) | sample: [1524459. 1722545.  702107. 1690504.  904859.]
+2025-08-20 13:24:23,016 - INFO - batch_edge_ids shape: (200,) | sample: [ 90076 102521  38093 100400  49912]
+2025-08-20 13:24:23,016 - INFO - Timestamp range: 7609.00 - 1842114.00
+2025-08-20 13:24:23,016 - INFO - Node ID range: src=[2-6458], dst=[8229-9177]
+2025-08-20 13:24:23,016 - INFO - ====================================
+2025-08-20 13:24:23,082 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:24:23,082 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:24:23,082 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:24:23,082 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:24:23,082 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:24:23,082 - INFO - ==================================
+2025-08-20 13:25:29,717 - INFO - Epoch  31/100 | Loss: 0.1285 | Time: 66.71s
+2025-08-20 13:25:29,720 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:25:29,720 - INFO - Batch size (config): 200
+2025-08-20 13:25:29,720 - INFO - Actual batch size: 200
+2025-08-20 13:25:29,720 - INFO - batch_src_nodes shape: (200,) | sample: [5898 2596   70 2922   79]
+2025-08-20 13:25:29,720 - INFO - batch_dst_nodes shape: (200,) | sample: [8778 8447 8291 8949 8329]
+2025-08-20 13:25:29,720 - INFO - batch_timestamps shape: (200,) | sample: [1581895. 1108671.    6359. 1488426.  693588.]
+2025-08-20 13:25:29,721 - INFO - batch_edge_ids shape: (200,) | sample: [94027 62807   279 87846 37512]
+2025-08-20 13:25:29,721 - INFO - Timestamp range: 6359.00 - 1853177.00
+2025-08-20 13:25:29,721 - INFO - Node ID range: src=[2-6492], dst=[8229-9175]
+2025-08-20 13:25:29,721 - INFO - ====================================
+2025-08-20 13:25:29,783 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:25:29,783 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:25:29,783 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:25:29,783 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:25:29,783 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:25:29,783 - INFO - ==================================
+2025-08-20 13:26:35,839 - INFO - Epoch  32/100 | Loss: 0.1296 | Time: 66.12s
+2025-08-20 13:26:35,843 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:26:35,843 - INFO - Batch size (config): 200
+2025-08-20 13:26:35,843 - INFO - Actual batch size: 200
+2025-08-20 13:26:35,844 - INFO - batch_src_nodes shape: (200,) | sample: [  10 1035 1075 3350 3714]
+2025-08-20 13:26:35,844 - INFO - batch_dst_nodes shape: (200,) | sample: [8236 9053 8913 9101 9019]
+2025-08-20 13:26:35,844 - INFO - batch_timestamps shape: (200,) | sample: [1446545. 1428615.  516158. 1411030. 1316305.]
+2025-08-20 13:26:35,844 - INFO - batch_edge_ids shape: (200,) | sample: [84289 83012 25927 81998 75716]
+2025-08-20 13:26:35,844 - INFO - Timestamp range: 3108.00 - 1850103.00
+2025-08-20 13:26:35,844 - INFO - Node ID range: src=[2-6400], dst=[8229-9174]
+2025-08-20 13:26:35,844 - INFO - ====================================
+2025-08-20 13:26:35,906 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:26:35,906 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:26:35,907 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:26:35,907 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:26:35,907 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:26:35,907 - INFO - ==================================
+2025-08-20 13:27:41,968 - INFO - Epoch  33/100 | Loss: 0.1297 | Time: 66.13s
+2025-08-20 13:27:41,973 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:27:41,973 - INFO - Batch size (config): 200
+2025-08-20 13:27:41,973 - INFO - Actual batch size: 200
+2025-08-20 13:27:41,973 - INFO - batch_src_nodes shape: (200,) | sample: [ 505 6446  388    9  510]
+2025-08-20 13:27:41,973 - INFO - batch_dst_nodes shape: (200,) | sample: [8525 8251 8584 8235 8911]
+2025-08-20 13:27:41,974 - INFO - batch_timestamps shape: (200,) | sample: [  89255. 1825015.   98448.  936237.  745233.]
+2025-08-20 13:27:41,974 - INFO - batch_edge_ids shape: (200,) | sample: [  3600 108251   3850  51731  40296]
+2025-08-20 13:27:41,974 - INFO - Timestamp range: 11493.00 - 1854316.00
+2025-08-20 13:27:41,974 - INFO - Node ID range: src=[2-6446], dst=[8229-9177]
+2025-08-20 13:27:41,974 - INFO - ====================================
+2025-08-20 13:27:42,037 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:27:42,037 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:27:42,037 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:27:42,037 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:27:42,037 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:27:42,037 - INFO - ==================================
+2025-08-20 13:28:49,134 - INFO - Epoch  34/100 | Loss: 0.1285 | Time: 67.17s
+2025-08-20 13:28:49,138 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:28:49,138 - INFO - Batch size (config): 200
+2025-08-20 13:28:49,138 - INFO - Actual batch size: 200
+2025-08-20 13:28:49,138 - INFO - batch_src_nodes shape: (200,) | sample: [2567   88 2847 1985 3440]
+2025-08-20 13:28:49,138 - INFO - batch_dst_nodes shape: (200,) | sample: [9017 8952 8989 8839 8611]
+2025-08-20 13:28:49,139 - INFO - batch_timestamps shape: (200,) | sample: [1441572.  920871. 1673477.  423000.  759691.]
+2025-08-20 13:28:49,139 - INFO - batch_edge_ids shape: (200,) | sample: [83830 50780 99404 20512 41221]
+2025-08-20 13:28:49,139 - INFO - Timestamp range: 17360.00 - 1849317.00
+2025-08-20 13:28:49,139 - INFO - Node ID range: src=[2-6439], dst=[8229-9172]
+2025-08-20 13:28:49,139 - INFO - ====================================
+2025-08-20 13:28:49,201 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:28:49,201 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:28:49,201 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:28:49,201 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:28:49,201 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:28:49,201 - INFO - ==================================
+2025-08-20 13:30:10,980 - INFO - Epoch  35/100 | Loss: 0.1291 | Time: 81.85s
+2025-08-20 13:30:10,990 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:30:10,990 - INFO - Batch size (config): 200
+2025-08-20 13:30:10,990 - INFO - Actual batch size: 200
+2025-08-20 13:30:10,990 - INFO - batch_src_nodes shape: (200,) | sample: [2011  798  125 1322  972]
+2025-08-20 13:30:10,991 - INFO - batch_dst_nodes shape: (200,) | sample: [8448 8625 8333 8722 8552]
+2025-08-20 13:30:10,991 - INFO - batch_timestamps shape: (200,) | sample: [391842. 489228. 797120. 820794. 156174.]
+2025-08-20 13:30:10,991 - INFO - batch_edge_ids shape: (200,) | sample: [18561 24146 43663 44887  6481]
+2025-08-20 13:30:10,991 - INFO - Timestamp range: 384.00 - 1851956.00
+2025-08-20 13:30:10,991 - INFO - Node ID range: src=[4-6257], dst=[8231-9177]
+2025-08-20 13:30:10,991 - INFO - ====================================
+2025-08-20 13:30:11,057 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:30:11,057 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:30:11,057 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:30:11,057 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:30:11,057 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:30:11,057 - INFO - ==================================
+2025-08-20 13:31:18,046 - INFO - Epoch  36/100 | Loss: 0.1345 | Time: 67.06s
+2025-08-20 13:31:18,050 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:31:18,050 - INFO - Batch size (config): 200
+2025-08-20 13:31:18,050 - INFO - Actual batch size: 200
+2025-08-20 13:31:18,050 - INFO - batch_src_nodes shape: (200,) | sample: [1932  525   13  258 4533]
+2025-08-20 13:31:18,050 - INFO - batch_dst_nodes shape: (200,) | sample: [8261 8492 8239 8423 8829]
+2025-08-20 13:31:18,050 - INFO - batch_timestamps shape: (200,) | sample: [ 365074.  429369.  338940.  357605. 1108060.]
+2025-08-20 13:31:18,050 - INFO - batch_edge_ids shape: (200,) | sample: [17435 20855 16042 17068 62765]
+2025-08-20 13:31:18,050 - INFO - Timestamp range: 5037.00 - 1855590.00
+2025-08-20 13:31:18,050 - INFO - Node ID range: src=[2-5951], dst=[8229-9178]
+2025-08-20 13:31:18,050 - INFO - ====================================
+2025-08-20 13:31:18,113 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:31:18,113 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:31:18,113 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:31:18,113 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:31:18,113 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:31:18,113 - INFO - ==================================
+2025-08-20 13:32:24,520 - INFO - Epoch  37/100 | Loss: 0.1280 | Time: 66.47s
+2025-08-20 13:32:24,523 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:32:24,523 - INFO - Batch size (config): 200
+2025-08-20 13:32:24,523 - INFO - Actual batch size: 200
+2025-08-20 13:32:24,524 - INFO - batch_src_nodes shape: (200,) | sample: [1141 6082  850 1071 2307]
+2025-08-20 13:32:24,524 - INFO - batch_dst_nodes shape: (200,) | sample: [8894 9164 8656 8412 8754]
+2025-08-20 13:32:24,524 - INFO - batch_timestamps shape: (200,) | sample: [ 972737. 1670194.  570805.  167811. 1670071.]
+2025-08-20 13:32:24,524 - INFO - batch_edge_ids shape: (200,) | sample: [54312 99204 29131  7075 99193]
+2025-08-20 13:32:24,524 - INFO - Timestamp range: 3591.00 - 1838550.00
+2025-08-20 13:32:24,524 - INFO - Node ID range: src=[2-6436], dst=[8229-9167]
+2025-08-20 13:32:24,524 - INFO - ====================================
+2025-08-20 13:32:24,587 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:32:24,587 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:32:24,587 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:32:24,587 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:32:24,587 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:32:24,587 - INFO - ==================================
+2025-08-20 13:33:30,203 - INFO - Epoch  38/100 | Loss: 0.1347 | Time: 65.68s
+2025-08-20 13:33:30,207 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:33:30,207 - INFO - Batch size (config): 200
+2025-08-20 13:33:30,207 - INFO - Actual batch size: 200
+2025-08-20 13:33:30,207 - INFO - batch_src_nodes shape: (200,) | sample: [4149 5305  227 2308 3520]
+2025-08-20 13:33:30,208 - INFO - batch_dst_nodes shape: (200,) | sample: [9050 9111 8396 8572 8441]
+2025-08-20 13:33:30,208 - INFO - batch_timestamps shape: (200,) | sample: [1405433. 1438094.  569669. 1620319.  783872.]
+2025-08-20 13:33:30,208 - INFO - batch_edge_ids shape: (200,) | sample: [81708 83547 29049 96070 42821]
+2025-08-20 13:33:30,208 - INFO - Timestamp range: 25974.00 - 1858274.00
+2025-08-20 13:33:30,208 - INFO - Node ID range: src=[2-6351], dst=[8229-9167]
+2025-08-20 13:33:30,208 - INFO - ====================================
+2025-08-20 13:33:30,269 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:33:30,270 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:33:30,270 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:33:30,270 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:33:30,270 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:33:30,270 - INFO - ==================================
+2025-08-20 13:34:35,277 - INFO - Epoch  39/100 | Loss: 0.1314 | Time: 65.07s
+2025-08-20 13:34:35,280 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:34:35,281 - INFO - Batch size (config): 200
+2025-08-20 13:34:35,281 - INFO - Actual batch size: 200
+2025-08-20 13:34:35,281 - INFO - batch_src_nodes shape: (200,) | sample: [ 525 1088  616  198 2178]
+2025-08-20 13:34:35,281 - INFO - batch_dst_nodes shape: (200,) | sample: [8786 8914 8973 8376 8881]
+2025-08-20 13:34:35,281 - INFO - batch_timestamps shape: (200,) | sample: [1400401. 1488393. 1208613.  218337.  668811.]
+2025-08-20 13:34:35,281 - INFO - batch_edge_ids shape: (200,) | sample: [81497 87842 68969  9277 35459]
+2025-08-20 13:34:35,281 - INFO - Timestamp range: 2079.00 - 1858673.00
+2025-08-20 13:34:35,281 - INFO - Node ID range: src=[2-6099], dst=[8229-9164]
+2025-08-20 13:34:35,281 - INFO - ====================================
+2025-08-20 13:34:35,344 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:34:35,344 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:34:35,344 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:34:35,344 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:34:35,344 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:34:35,344 - INFO - ==================================
+2025-08-20 13:35:56,104 - INFO - Epoch  40/100 | Loss: 0.1294 | Time: 80.83s
+2025-08-20 13:35:56,108 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:35:56,108 - INFO - Batch size (config): 200
+2025-08-20 13:35:56,108 - INFO - Actual batch size: 200
+2025-08-20 13:35:56,108 - INFO - batch_src_nodes shape: (200,) | sample: [1762 6180 2111 5519 6098]
+2025-08-20 13:35:56,108 - INFO - batch_dst_nodes shape: (200,) | sample: [8317 9046 8603 9144 9136]
+2025-08-20 13:35:56,108 - INFO - batch_timestamps shape: (200,) | sample: [ 434486. 1725439.  938457. 1540411. 1760908.]
+2025-08-20 13:35:56,109 - INFO - batch_edge_ids shape: (200,) | sample: [ 21103 102680  51901  91267 104464]
+2025-08-20 13:35:56,109 - INFO - Timestamp range: 17779.00 - 1854407.00
+2025-08-20 13:35:56,109 - INFO - Node ID range: src=[2-6492], dst=[8229-9169]
+2025-08-20 13:35:56,109 - INFO - ====================================
+2025-08-20 13:35:56,173 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:35:56,173 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:35:56,173 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:35:56,173 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:35:56,173 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:35:56,173 - INFO - ==================================
+2025-08-20 13:37:01,891 - INFO - Epoch  41/100 | Loss: 0.1284 | Time: 65.79s
+2025-08-20 13:37:01,903 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:37:01,903 - INFO - Batch size (config): 200
+2025-08-20 13:37:01,903 - INFO - Actual batch size: 200
+2025-08-20 13:37:01,904 - INFO - batch_src_nodes shape: (200,) | sample: [ 376  641 1837    5 3549]
+2025-08-20 13:37:01,904 - INFO - batch_dst_nodes shape: (200,) | sample: [8476 9107 8836 8726 8459]
+2025-08-20 13:37:01,904 - INFO - batch_timestamps shape: (200,) | sample: [ 241242. 1493284.  340442.  293536.  962875.]
+2025-08-20 13:37:01,904 - INFO - batch_edge_ids shape: (200,) | sample: [10545 88242 16173 13671 53586]
+2025-08-20 13:37:01,904 - INFO - Timestamp range: 33726.00 - 1858422.00
+2025-08-20 13:37:01,904 - INFO - Node ID range: src=[2-6166], dst=[8229-9167]
+2025-08-20 13:37:01,904 - INFO - ====================================
+2025-08-20 13:37:01,967 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:37:01,967 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:37:01,967 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:37:01,967 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:37:01,967 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:37:01,967 - INFO - ==================================
+2025-08-20 13:38:07,962 - INFO - Epoch  42/100 | Loss: 0.1289 | Time: 66.06s
+2025-08-20 13:38:07,966 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:38:07,966 - INFO - Batch size (config): 200
+2025-08-20 13:38:07,966 - INFO - Actual batch size: 200
+2025-08-20 13:38:07,967 - INFO - batch_src_nodes shape: (200,) | sample: [2743 1268  180  412  286]
+2025-08-20 13:38:07,967 - INFO - batch_dst_nodes shape: (200,) | sample: [8401 8418 8440 8897 8866]
+2025-08-20 13:38:07,967 - INFO - batch_timestamps shape: (200,) | sample: [ 586452.  269458.  200318.  501597. 1420582.]
+2025-08-20 13:38:07,967 - INFO - batch_edge_ids shape: (200,) | sample: [30272 12431  8558 25005 82481]
+2025-08-20 13:38:07,967 - INFO - Timestamp range: 1607.00 - 1840780.00
+2025-08-20 13:38:07,967 - INFO - Node ID range: src=[2-6157], dst=[8229-9177]
+2025-08-20 13:38:07,967 - INFO - ====================================
+2025-08-20 13:38:08,029 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:38:08,029 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:38:08,029 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:38:08,030 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:38:08,030 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:38:08,030 - INFO - ==================================
+2025-08-20 13:39:13,393 - INFO - Epoch  43/100 | Loss: 0.1275 | Time: 65.43s
+2025-08-20 13:39:13,397 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:39:13,397 - INFO - Batch size (config): 200
+2025-08-20 13:39:13,397 - INFO - Actual batch size: 200
+2025-08-20 13:39:13,397 - INFO - batch_src_nodes shape: (200,) | sample: [1203 1258  271 1044 1170]
+2025-08-20 13:39:13,397 - INFO - batch_dst_nodes shape: (200,) | sample: [8636 8959 8433 8483 8725]
+2025-08-20 13:39:13,397 - INFO - batch_timestamps shape: (200,) | sample: [ 730813. 1420276. 1092331.  496476. 1539660.]
+2025-08-20 13:39:13,397 - INFO - batch_edge_ids shape: (200,) | sample: [39550 82465 61772 24637 91227]
+2025-08-20 13:39:13,397 - INFO - Timestamp range: 11352.00 - 1836565.00
+2025-08-20 13:39:13,397 - INFO - Node ID range: src=[2-6404], dst=[8229-9177]
+2025-08-20 13:39:13,397 - INFO - ====================================
+2025-08-20 13:39:13,459 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:39:13,459 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:39:13,459 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:39:13,459 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:39:13,459 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:39:13,459 - INFO - ==================================
+2025-08-20 13:40:22,154 - INFO - Epoch  44/100 | Loss: 0.1285 | Time: 68.76s
+2025-08-20 13:40:22,161 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:40:22,161 - INFO - Batch size (config): 200
+2025-08-20 13:40:22,161 - INFO - Actual batch size: 200
+2025-08-20 13:40:22,162 - INFO - batch_src_nodes shape: (200,) | sample: [ 380 1183 1601  194 1507]
+2025-08-20 13:40:22,162 - INFO - batch_dst_nodes shape: (200,) | sample: [8800 8343 8266 8374 8502]
+2025-08-20 13:40:22,162 - INFO - batch_timestamps shape: (200,) | sample: [ 477923.  460829.  376407.  475649. 1274029.]
+2025-08-20 13:40:22,162 - INFO - batch_edge_ids shape: (200,) | sample: [23381 22522 17937 23260 72979]
+2025-08-20 13:40:22,162 - INFO - Timestamp range: 49700.00 - 1841335.00
+2025-08-20 13:40:22,163 - INFO - Node ID range: src=[4-6442], dst=[8231-9177]
+2025-08-20 13:40:22,163 - INFO - ====================================
+2025-08-20 13:40:22,225 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:40:22,225 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:40:22,225 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:40:22,225 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:40:22,225 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:40:22,225 - INFO - ==================================
+2025-08-20 13:41:43,500 - INFO - save model /home/s2516027/GLCE/checkpoints/wikipedia/models/DyGMamba/DyGMamba_clifford_seed42.pkl
+2025-08-20 13:41:43,700 - INFO - Saved best model to /home/s2516027/GLCE/checkpoints/wikipedia/best_models/best_DyGMamba_clifford_wikipedia.pth
+2025-08-20 13:41:43,700 - INFO - Epoch  45/100 | Loss: 0.1274 | Time: 81.55s
+2025-08-20 13:41:43,704 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:41:43,704 - INFO - Batch size (config): 200
+2025-08-20 13:41:43,704 - INFO - Actual batch size: 200
+2025-08-20 13:41:43,705 - INFO - batch_src_nodes shape: (200,) | sample: [ 641  786   69 2633  493]
+2025-08-20 13:41:43,705 - INFO - batch_dst_nodes shape: (200,) | sample: [9107 8620 9054 8873 8471]
+2025-08-20 13:41:43,705 - INFO - batch_timestamps shape: (200,) | sample: [1527836.  916517. 1210759.  545675. 1125825.]
+2025-08-20 13:41:43,705 - INFO - batch_edge_ids shape: (200,) | sample: [90349 50528 69189 27824 63901]
+2025-08-20 13:41:43,705 - INFO - Timestamp range: 4243.00 - 1844583.00
+2025-08-20 13:41:43,705 - INFO - Node ID range: src=[2-6217], dst=[8229-9167]
+2025-08-20 13:41:43,705 - INFO - ====================================
+2025-08-20 13:41:43,890 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:41:43,890 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:41:43,890 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:41:43,890 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:41:43,890 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:41:43,890 - INFO - ==================================
+2025-08-20 13:42:50,432 - INFO - Epoch  46/100 | Loss: 0.1249 | Time: 66.73s
+2025-08-20 13:42:50,436 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:42:50,436 - INFO - Batch size (config): 200
+2025-08-20 13:42:50,436 - INFO - Actual batch size: 200
+2025-08-20 13:42:50,436 - INFO - batch_src_nodes shape: (200,) | sample: [ 267 4108 1173  816 1047]
+2025-08-20 13:42:50,436 - INFO - batch_dst_nodes shape: (200,) | sample: [8355 9048 8571 8373 9072]
+2025-08-20 13:42:50,437 - INFO - batch_timestamps shape: (200,) | sample: [  37603. 1852818.  194857.  121361. 1553458.]
+2025-08-20 13:42:50,437 - INFO - batch_edge_ids shape: (200,) | sample: [  1350 109763   8314   4809  92143]
+2025-08-20 13:42:50,437 - INFO - Timestamp range: 25363.00 - 1852818.00
+2025-08-20 13:42:50,437 - INFO - Node ID range: src=[2-6222], dst=[8229-9168]
+2025-08-20 13:42:50,437 - INFO - ====================================
+2025-08-20 13:42:50,500 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:42:50,500 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:42:50,500 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:42:50,500 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:42:50,500 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:42:50,500 - INFO - ==================================
+2025-08-20 13:43:57,076 - INFO - Epoch  47/100 | Loss: 0.1244 | Time: 66.64s
+2025-08-20 13:43:57,080 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:43:57,080 - INFO - Batch size (config): 200
+2025-08-20 13:43:57,080 - INFO - Actual batch size: 200
+2025-08-20 13:43:57,081 - INFO - batch_src_nodes shape: (200,) | sample: [477 197 401   5 269]
+2025-08-20 13:43:57,081 - INFO - batch_dst_nodes shape: (200,) | sample: [8517 8737 8568 9113 8432]
+2025-08-20 13:43:57,081 - INFO - batch_timestamps shape: (200,) | sample: [ 237691. 1571718. 1265912. 1416281.  297067.]
+2025-08-20 13:43:57,081 - INFO - batch_edge_ids shape: (200,) | sample: [10306 93323 72496 82259 13829]
+2025-08-20 13:43:57,081 - INFO - Timestamp range: 8093.00 - 1846264.00
+2025-08-20 13:43:57,081 - INFO - Node ID range: src=[5-6508], dst=[8235-9167]
+2025-08-20 13:43:57,081 - INFO - ====================================
+2025-08-20 13:43:57,143 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:43:57,143 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:43:57,143 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:43:57,143 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:43:57,143 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:43:57,143 - INFO - ==================================
+2025-08-20 13:45:04,319 - INFO - Epoch  48/100 | Loss: 0.1274 | Time: 67.24s
+2025-08-20 13:45:04,323 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:45:04,324 - INFO - Batch size (config): 200
+2025-08-20 13:45:04,324 - INFO - Actual batch size: 200
+2025-08-20 13:45:04,324 - INFO - batch_src_nodes shape: (200,) | sample: [3846  641  995 1211  850]
+2025-08-20 13:45:04,324 - INFO - batch_dst_nodes shape: (200,) | sample: [9030 8580 8635 8709 8868]
+2025-08-20 13:45:04,324 - INFO - batch_timestamps shape: (200,) | sample: [1056967.  846072.  736403.  206250.  826544.]
+2025-08-20 13:45:04,324 - INFO - batch_edge_ids shape: (200,) | sample: [59985 46593 39839  8751 45186]
+2025-08-20 13:45:04,324 - INFO - Timestamp range: 11437.00 - 1861608.00
+2025-08-20 13:45:04,324 - INFO - Node ID range: src=[4-6074], dst=[8231-9165]
+2025-08-20 13:45:04,324 - INFO - ====================================
+2025-08-20 13:45:04,386 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:45:04,386 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:45:04,386 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:45:04,386 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:45:04,386 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:45:04,386 - INFO - ==================================
+2025-08-20 13:46:10,810 - INFO - Epoch  49/100 | Loss: 0.1268 | Time: 66.49s
+2025-08-20 13:46:10,816 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:46:10,816 - INFO - Batch size (config): 200
+2025-08-20 13:46:10,816 - INFO - Actual batch size: 200
+2025-08-20 13:46:10,816 - INFO - batch_src_nodes shape: (200,) | sample: [ 198 1075  499  450    2]
+2025-08-20 13:46:10,816 - INFO - batch_dst_nodes shape: (200,) | sample: [8376 9057 8761 8815 8229]
+2025-08-20 13:46:10,816 - INFO - batch_timestamps shape: (200,) | sample: [ 938056. 1802932. 1088660.  921460.  166625.]
+2025-08-20 13:46:10,816 - INFO - batch_edge_ids shape: (200,) | sample: [ 51865 106948  61573  50820   7001]
+2025-08-20 13:46:10,817 - INFO - Timestamp range: 6448.00 - 1835158.00
+2025-08-20 13:46:10,817 - INFO - Node ID range: src=[2-6226], dst=[8229-9160]
+2025-08-20 13:46:10,817 - INFO - ====================================
+2025-08-20 13:46:10,878 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:46:10,878 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:46:10,878 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:46:10,879 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:46:10,879 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:46:10,879 - INFO - ==================================
+2025-08-20 13:47:33,266 - INFO - save model /home/s2516027/GLCE/checkpoints/wikipedia/models/DyGMamba/DyGMamba_clifford_seed42.pkl
+2025-08-20 13:47:33,434 - INFO - Saved best model to /home/s2516027/GLCE/checkpoints/wikipedia/best_models/best_DyGMamba_clifford_wikipedia.pth
+2025-08-20 13:47:33,434 - INFO - Epoch  50/100 | Loss: 0.1258 | Time: 82.62s
+2025-08-20 13:47:33,439 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:47:33,439 - INFO - Batch size (config): 200
+2025-08-20 13:47:33,439 - INFO - Actual batch size: 200
+2025-08-20 13:47:33,439 - INFO - batch_src_nodes shape: (200,) | sample: [211 380 367 978 367]
+2025-08-20 13:47:33,439 - INFO - batch_dst_nodes shape: (200,) | sample: [8903 8479 8473 8941 8473]
+2025-08-20 13:47:33,440 - INFO - batch_timestamps shape: (200,) | sample: [ 545225. 1176437. 1032297. 1786284.  877745.]
+2025-08-20 13:47:33,440 - INFO - batch_edge_ids shape: (200,) | sample: [ 27788  66593  58407 105848  48683]
+2025-08-20 13:47:33,440 - INFO - Timestamp range: 2343.00 - 1860373.00
+2025-08-20 13:47:33,440 - INFO - Node ID range: src=[4-6520], dst=[8231-9167]
+2025-08-20 13:47:33,440 - INFO - ====================================
+2025-08-20 13:47:33,505 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:47:33,505 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:47:33,505 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:47:33,505 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:47:33,505 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:47:33,506 - INFO - ==================================
+2025-08-20 13:48:41,349 - INFO - Epoch  51/100 | Loss: 0.1254 | Time: 67.91s
+2025-08-20 13:48:41,352 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:48:41,352 - INFO - Batch size (config): 200
+2025-08-20 13:48:41,352 - INFO - Actual batch size: 200
+2025-08-20 13:48:41,353 - INFO - batch_src_nodes shape: (200,) | sample: [3866   63  923  376  401]
+2025-08-20 13:48:41,353 - INFO - batch_dst_nodes shape: (200,) | sample: [9034 8287 8670 8476 8738]
+2025-08-20 13:48:41,353 - INFO - batch_timestamps shape: (200,) | sample: [1123120.    5855.  145329.  396699. 1371810.]
+2025-08-20 13:48:41,353 - INFO - batch_edge_ids shape: (200,) | sample: [63741   264  5792 18781 79589]
+2025-08-20 13:48:41,353 - INFO - Timestamp range: 402.00 - 1846631.00
+2025-08-20 13:48:41,353 - INFO - Node ID range: src=[2-6098], dst=[8229-9167]
+2025-08-20 13:48:41,353 - INFO - ====================================
+2025-08-20 13:48:41,416 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:48:41,416 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:48:41,416 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:48:41,416 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:48:41,416 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:48:41,416 - INFO - ==================================
+2025-08-20 13:49:46,796 - INFO - Epoch  52/100 | Loss: 0.1249 | Time: 65.45s
+2025-08-20 13:49:46,799 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:49:46,799 - INFO - Batch size (config): 200
+2025-08-20 13:49:46,799 - INFO - Actual batch size: 200
+2025-08-20 13:49:46,800 - INFO - batch_src_nodes shape: (200,) | sample: [3813  798  829  769 3912]
+2025-08-20 13:49:46,800 - INFO - batch_dst_nodes shape: (200,) | sample: [8909 8625 8631 8937 8360]
+2025-08-20 13:49:46,800 - INFO - batch_timestamps shape: (200,) | sample: [1020133.  210105.  153146.  660726. 1531910.]
+2025-08-20 13:49:46,800 - INFO - batch_edge_ids shape: (200,) | sample: [57444  8907  6266 34866 90656]
+2025-08-20 13:49:46,800 - INFO - Timestamp range: 11520.00 - 1838974.00
+2025-08-20 13:49:46,800 - INFO - Node ID range: src=[5-6308], dst=[8230-9167]
+2025-08-20 13:49:46,800 - INFO - ====================================
+2025-08-20 13:49:46,861 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:49:46,861 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:49:46,861 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:49:46,861 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:49:46,862 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:49:46,862 - INFO - ==================================
+2025-08-20 13:50:52,567 - INFO - Epoch  53/100 | Loss: 0.1253 | Time: 65.77s
+2025-08-20 13:50:52,571 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:50:52,571 - INFO - Batch size (config): 200
+2025-08-20 13:50:52,571 - INFO - Actual batch size: 200
+2025-08-20 13:50:52,571 - INFO - batch_src_nodes shape: (200,) | sample: [1576 1035 3427 5559  616]
+2025-08-20 13:50:52,571 - INFO - batch_dst_nodes shape: (200,) | sample: [8796 9043 9000 8629 8973]
+2025-08-20 13:50:52,571 - INFO - batch_timestamps shape: (200,) | sample: [ 542371. 1452603.  998405. 1454222. 1436995.]
+2025-08-20 13:50:52,571 - INFO - batch_edge_ids shape: (200,) | sample: [27641 84772 55773 84915 83490]
+2025-08-20 13:50:52,571 - INFO - Timestamp range: 5180.00 - 1845406.00
+2025-08-20 13:50:52,571 - INFO - Node ID range: src=[4-6115], dst=[8231-9167]
+2025-08-20 13:50:52,571 - INFO - ====================================
+2025-08-20 13:50:52,633 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:50:52,633 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:50:52,633 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:50:52,633 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:50:52,633 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:50:52,633 - INFO - ==================================
+2025-08-20 13:51:58,119 - INFO - Epoch  54/100 | Loss: 0.1251 | Time: 65.55s
+2025-08-20 13:51:58,123 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:51:58,123 - INFO - Batch size (config): 200
+2025-08-20 13:51:58,123 - INFO - Actual batch size: 200
+2025-08-20 13:51:58,123 - INFO - batch_src_nodes shape: (200,) | sample: [3125  271  499 3355  678]
+2025-08-20 13:51:58,123 - INFO - batch_dst_nodes shape: (200,) | sample: [8813 8433 8761 8755 8424]
+2025-08-20 13:51:58,124 - INFO - batch_timestamps shape: (200,) | sample: [ 799578.  499091. 1109744. 1543529.   92731.]
+2025-08-20 13:51:58,124 - INFO - batch_edge_ids shape: (200,) | sample: [43794 24829 62881 91493  3708]
+2025-08-20 13:51:58,124 - INFO - Timestamp range: 7400.00 - 1862577.00
+2025-08-20 13:51:58,124 - INFO - Node ID range: src=[4-6331], dst=[8231-9177]
+2025-08-20 13:51:58,124 - INFO - ====================================
+2025-08-20 13:51:58,185 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:51:58,185 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:51:58,185 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:51:58,185 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:51:58,185 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:51:58,186 - INFO - ==================================
+2025-08-20 13:53:20,324 - INFO - Epoch  55/100 | Loss: 0.1263 | Time: 82.20s
+2025-08-20 13:53:20,329 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:53:20,329 - INFO - Batch size (config): 200
+2025-08-20 13:53:20,329 - INFO - Actual batch size: 200
+2025-08-20 13:53:20,329 - INFO - batch_src_nodes shape: (200,) | sample: [1365 1786   87 1030 5750]
+2025-08-20 13:53:20,329 - INFO - batch_dst_nodes shape: (200,) | sample: [8707 8772 8289 8691 8291]
+2025-08-20 13:53:20,329 - INFO - batch_timestamps shape: (200,) | sample: [ 408111. 1280484.  866309. 1097807. 1524283.]
+2025-08-20 13:53:20,329 - INFO - batch_edge_ids shape: (200,) | sample: [19579 73437 47923 62118 90062]
+2025-08-20 13:53:20,329 - INFO - Timestamp range: 6935.00 - 1849427.00
+2025-08-20 13:53:20,329 - INFO - Node ID range: src=[2-6505], dst=[8229-9173]
+2025-08-20 13:53:20,329 - INFO - ====================================
+2025-08-20 13:53:20,394 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:53:20,394 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:53:20,394 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:53:20,394 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:53:20,394 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:53:20,394 - INFO - ==================================
+2025-08-20 13:54:25,500 - INFO - Epoch  56/100 | Loss: 0.1241 | Time: 65.18s
+2025-08-20 13:54:25,503 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:54:25,503 - INFO - Batch size (config): 200
+2025-08-20 13:54:25,503 - INFO - Actual batch size: 200
+2025-08-20 13:54:25,504 - INFO - batch_src_nodes shape: (200,) | sample: [1667   23 2931  328 3406]
+2025-08-20 13:54:25,504 - INFO - batch_dst_nodes shape: (200,) | sample: [8368 8321 8950 8452 8383]
+2025-08-20 13:54:25,504 - INFO - batch_timestamps shape: (200,) | sample: [1692769.   57310.  618205.  219713.  752490.]
+2025-08-20 13:54:25,504 - INFO - batch_edge_ids shape: (200,) | sample: [100546   2089  32371   9375  40730]
+2025-08-20 13:54:25,504 - INFO - Timestamp range: 4877.00 - 1862577.00
+2025-08-20 13:54:25,504 - INFO - Node ID range: src=[2-6147], dst=[8229-9164]
+2025-08-20 13:54:25,504 - INFO - ====================================
+2025-08-20 13:54:25,566 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:54:25,566 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:54:25,566 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:54:25,566 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:54:25,566 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:54:25,566 - INFO - ==================================
+2025-08-20 13:55:33,417 - INFO - Epoch  57/100 | Loss: 0.1220 | Time: 67.92s
+2025-08-20 13:55:33,425 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:55:33,425 - INFO - Batch size (config): 200
+2025-08-20 13:55:33,425 - INFO - Actual batch size: 200
+2025-08-20 13:55:33,425 - INFO - batch_src_nodes shape: (200,) | sample: [6074 1681 4488 1088 1322]
+2025-08-20 13:55:33,425 - INFO - batch_dst_nodes shape: (200,) | sample: [9165 8251 9066 8988 8722]
+2025-08-20 13:55:33,425 - INFO - batch_timestamps shape: (200,) | sample: [1732686. 1120439. 1776037. 1833062.  939804.]
+2025-08-20 13:55:33,425 - INFO - batch_edge_ids shape: (200,) | sample: [103128  63540 105247 108782  52035]
+2025-08-20 13:55:33,425 - INFO - Timestamp range: 15741.00 - 1862374.00
+2025-08-20 13:55:33,425 - INFO - Node ID range: src=[2-6278], dst=[8229-9167]
+2025-08-20 13:55:33,425 - INFO - ====================================
+2025-08-20 13:55:33,487 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:55:33,487 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:55:33,487 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:55:33,487 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:55:33,487 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:55:33,487 - INFO - ==================================
+2025-08-20 13:56:40,240 - INFO - Epoch  58/100 | Loss: 0.1239 | Time: 66.82s
+2025-08-20 13:56:40,244 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:56:40,244 - INFO - Batch size (config): 200
+2025-08-20 13:56:40,244 - INFO - Actual batch size: 200
+2025-08-20 13:56:40,244 - INFO - batch_src_nodes shape: (200,) | sample: [ 286 4748  532 4514    7]
+2025-08-20 13:56:40,244 - INFO - batch_dst_nodes shape: (200,) | sample: [8622 8578 8539 9067 8234]
+2025-08-20 13:56:40,244 - INFO - batch_timestamps shape: (200,) | sample: [1152392. 1209802.  217003. 1103035. 1316533.]
+2025-08-20 13:56:40,244 - INFO - batch_edge_ids shape: (200,) | sample: [65166 69091  9207 62399 75729]
+2025-08-20 13:56:40,244 - INFO - Timestamp range: 14450.00 - 1845644.00
+2025-08-20 13:56:40,244 - INFO - Node ID range: src=[5-6074], dst=[8234-9177]
+2025-08-20 13:56:40,244 - INFO - ====================================
+2025-08-20 13:56:40,306 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:56:40,306 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:56:40,307 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:56:40,307 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:56:40,307 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:56:40,307 - INFO - ==================================
+2025-08-20 13:57:46,219 - INFO - Epoch  59/100 | Loss: 0.1242 | Time: 65.98s
+2025-08-20 13:57:46,223 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:57:46,223 - INFO - Batch size (config): 200
+2025-08-20 13:57:46,223 - INFO - Actual batch size: 200
+2025-08-20 13:57:46,223 - INFO - batch_src_nodes shape: (200,) | sample: [ 755 2922   17 3867   94]
+2025-08-20 13:57:46,223 - INFO - batch_dst_nodes shape: (200,) | sample: [8970 8949 8704 8268 8308]
+2025-08-20 13:57:46,223 - INFO - batch_timestamps shape: (200,) | sample: [ 754110.  863854.  343564. 1171783. 1732282.]
+2025-08-20 13:57:46,223 - INFO - batch_edge_ids shape: (200,) | sample: [ 40873  47796  16345  66258 103099]
+2025-08-20 13:57:46,223 - INFO - Timestamp range: 2805.00 - 1822484.00
+2025-08-20 13:57:46,223 - INFO - Node ID range: src=[2-6435], dst=[8229-9164]
+2025-08-20 13:57:46,223 - INFO - ====================================
+2025-08-20 13:57:46,285 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:57:46,285 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:57:46,285 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:57:46,285 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:57:46,285 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:57:46,285 - INFO - ==================================
+2025-08-20 13:59:07,259 - INFO - Epoch  60/100 | Loss: 0.1236 | Time: 81.04s
+2025-08-20 13:59:07,263 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 13:59:07,263 - INFO - Batch size (config): 200
+2025-08-20 13:59:07,263 - INFO - Actual batch size: 200
+2025-08-20 13:59:07,263 - INFO - batch_src_nodes shape: (200,) | sample: [4815  401 1030 1878 1444]
+2025-08-20 13:59:07,263 - INFO - batch_dst_nodes shape: (200,) | sample: [9082 8818 8691 8737 8254]
+2025-08-20 13:59:07,264 - INFO - batch_timestamps shape: (200,) | sample: [1231710. 1705994. 1360119. 1634544.  410010.]
+2025-08-20 13:59:07,264 - INFO - batch_edge_ids shape: (200,) | sample: [ 70645 101369  78626  97139  19714]
+2025-08-20 13:59:07,264 - INFO - Timestamp range: 14861.00 - 1860951.00
+2025-08-20 13:59:07,264 - INFO - Node ID range: src=[2-6208], dst=[8229-9167]
+2025-08-20 13:59:07,264 - INFO - ====================================
+2025-08-20 13:59:07,328 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 13:59:07,328 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:59:07,328 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 13:59:07,328 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 13:59:07,328 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 13:59:07,328 - INFO - ==================================
+2025-08-20 14:00:13,712 - INFO - Epoch  61/100 | Loss: 0.1233 | Time: 66.45s
+2025-08-20 14:00:13,716 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:00:13,716 - INFO - Batch size (config): 200
+2025-08-20 14:00:13,716 - INFO - Actual batch size: 200
+2025-08-20 14:00:13,716 - INFO - batch_src_nodes shape: (200,) | sample: [ 466 5292  224 5634 2535]
+2025-08-20 14:00:13,716 - INFO - batch_dst_nodes shape: (200,) | sample: [8510 9108 8388 9130 8434]
+2025-08-20 14:00:13,716 - INFO - batch_timestamps shape: (200,) | sample: [ 261200. 1360163.  991441. 1710429. 1738652.]
+2025-08-20 14:00:13,716 - INFO - batch_edge_ids shape: (200,) | sample: [ 11985  78637  55369 101647 103406]
+2025-08-20 14:00:13,716 - INFO - Timestamp range: 6438.00 - 1842212.00
+2025-08-20 14:00:13,716 - INFO - Node ID range: src=[2-6436], dst=[8229-9167]
+2025-08-20 14:00:13,716 - INFO - ====================================
+2025-08-20 14:00:13,778 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:00:13,778 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:00:13,779 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:00:13,779 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:00:13,779 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:00:13,779 - INFO - ==================================
+2025-08-20 14:01:20,568 - INFO - Epoch  62/100 | Loss: 0.1228 | Time: 66.86s
+2025-08-20 14:01:20,572 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:01:20,572 - INFO - Batch size (config): 200
+2025-08-20 14:01:20,572 - INFO - Actual batch size: 200
+2025-08-20 14:01:20,572 - INFO - batch_src_nodes shape: (200,) | sample: [1885  713 3026  715 1075]
+2025-08-20 14:01:20,573 - INFO - batch_dst_nodes shape: (200,) | sample: [8919 8565 8267 8598 8913]
+2025-08-20 14:01:20,573 - INFO - batch_timestamps shape: (200,) | sample: [ 526322. 1228919.  655704.  901026.  605497.]
+2025-08-20 14:01:20,573 - INFO - batch_edge_ids shape: (200,) | sample: [26623 70468 34477 49735 31734]
+2025-08-20 14:01:20,573 - INFO - Timestamp range: 8243.00 - 1859323.00
+2025-08-20 14:01:20,573 - INFO - Node ID range: src=[11-6492], dst=[8230-9167]
+2025-08-20 14:01:20,573 - INFO - ====================================
+2025-08-20 14:01:20,637 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:01:20,637 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:01:20,637 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:01:20,637 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:01:20,637 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:01:20,637 - INFO - ==================================
+2025-08-20 14:02:26,832 - INFO - Epoch  63/100 | Loss: 0.1257 | Time: 66.26s
+2025-08-20 14:02:26,836 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:02:26,836 - INFO - Batch size (config): 200
+2025-08-20 14:02:26,836 - INFO - Actual batch size: 200
+2025-08-20 14:02:26,836 - INFO - batch_src_nodes shape: (200,) | sample: [ 522 5684  541 1744  368]
+2025-08-20 14:02:26,836 - INFO - batch_dst_nodes shape: (200,) | sample: [8531 8576 8544 8610 8483]
+2025-08-20 14:02:26,836 - INFO - batch_timestamps shape: (200,) | sample: [ 217606. 1489870.  803510. 1609455. 1591436.]
+2025-08-20 14:02:26,837 - INFO - batch_edge_ids shape: (200,) | sample: [ 9235 87949 44063 95368 94496]
+2025-08-20 14:02:26,837 - INFO - Timestamp range: 8336.00 - 1857070.00
+2025-08-20 14:02:26,837 - INFO - Node ID range: src=[4-6287], dst=[8231-9167]
+2025-08-20 14:02:26,837 - INFO - ====================================
+2025-08-20 14:02:26,898 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:02:26,898 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:02:26,898 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:02:26,898 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:02:26,898 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:02:26,898 - INFO - ==================================
+2025-08-20 14:03:33,572 - INFO - Epoch  64/100 | Loss: 0.1238 | Time: 66.74s
+2025-08-20 14:03:33,576 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:03:33,576 - INFO - Batch size (config): 200
+2025-08-20 14:03:33,576 - INFO - Actual batch size: 200
+2025-08-20 14:03:33,576 - INFO - batch_src_nodes shape: (200,) | sample: [3788 4055 1291 1651 2138]
+2025-08-20 14:03:33,576 - INFO - batch_dst_nodes shape: (200,) | sample: [8548 8298 8323 8809 8275]
+2025-08-20 14:03:33,576 - INFO - batch_timestamps shape: (200,) | sample: [874747. 962955. 680345. 643988. 791412.]
+2025-08-20 14:03:33,576 - INFO - batch_edge_ids shape: (200,) | sample: [48547 53596 36454 33759 43291]
+2025-08-20 14:03:33,577 - INFO - Timestamp range: 7372.00 - 1850755.00
+2025-08-20 14:03:33,577 - INFO - Node ID range: src=[4-6439], dst=[8230-9133]
+2025-08-20 14:03:33,577 - INFO - ====================================
+2025-08-20 14:03:33,639 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:03:33,639 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:03:33,639 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:03:33,639 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:03:33,639 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:03:33,639 - INFO - ==================================
+2025-08-20 14:04:56,172 - INFO - Epoch  65/100 | Loss: 0.1230 | Time: 82.60s
+2025-08-20 14:04:56,176 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:04:56,176 - INFO - Batch size (config): 200
+2025-08-20 14:04:56,176 - INFO - Actual batch size: 200
+2025-08-20 14:04:56,176 - INFO - batch_src_nodes shape: (200,) | sample: [2931 2847 1597 2008 1322]
+2025-08-20 14:04:56,176 - INFO - batch_dst_nodes shape: (200,) | sample: [8950 8989 8856 8861 8722]
+2025-08-20 14:04:56,176 - INFO - batch_timestamps shape: (200,) | sample: [ 862816. 1683042.  511648.  412027.  939189.]
+2025-08-20 14:04:56,176 - INFO - batch_edge_ids shape: (200,) | sample: [47748 99982 25629 19847 51967]
+2025-08-20 14:04:56,176 - INFO - Timestamp range: 11466.00 - 1850295.00
+2025-08-20 14:04:56,176 - INFO - Node ID range: src=[5-6239], dst=[8235-9165]
+2025-08-20 14:04:56,176 - INFO - ====================================
+2025-08-20 14:04:56,240 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:04:56,240 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:04:56,240 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:04:56,240 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:04:56,240 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:04:56,240 - INFO - ==================================
+2025-08-20 14:06:03,548 - INFO - Epoch  66/100 | Loss: 0.1238 | Time: 67.38s
+2025-08-20 14:06:03,561 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:06:03,561 - INFO - Batch size (config): 200
+2025-08-20 14:06:03,561 - INFO - Actual batch size: 200
+2025-08-20 14:06:03,561 - INFO - batch_src_nodes shape: (200,) | sample: [ 478  867 2954 5553 1090]
+2025-08-20 14:06:03,561 - INFO - batch_dst_nodes shape: (200,) | sample: [8609 8649 8321 9167 8710]
+2025-08-20 14:06:03,561 - INFO - batch_timestamps shape: (200,) | sample: [1843747. 1684505. 1006257. 1790456.  216856.]
+2025-08-20 14:06:03,562 - INFO - batch_edge_ids shape: (200,) | sample: [109312 100073  56345 106135   9194]
+2025-08-20 14:06:03,562 - INFO - Timestamp range: 13258.00 - 1857941.00
+2025-08-20 14:06:03,562 - INFO - Node ID range: src=[2-6492], dst=[8229-9177]
+2025-08-20 14:06:03,562 - INFO - ====================================
+2025-08-20 14:06:03,680 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:06:03,681 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:06:03,681 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:06:03,681 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:06:03,681 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:06:03,681 - INFO - ==================================
+2025-08-20 14:07:10,075 - INFO - Epoch  67/100 | Loss: 0.1247 | Time: 66.53s
+2025-08-20 14:07:10,085 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:07:10,085 - INFO - Batch size (config): 200
+2025-08-20 14:07:10,085 - INFO - Actual batch size: 200
+2025-08-20 14:07:10,085 - INFO - batch_src_nodes shape: (200,) | sample: [2713   41 3312  405    2]
+2025-08-20 14:07:10,085 - INFO - batch_dst_nodes shape: (200,) | sample: [8931 8856 8840 8889 8229]
+2025-08-20 14:07:10,086 - INFO - batch_timestamps shape: (200,) | sample: [ 581145.  460481. 1443910.  518699.  191181.]
+2025-08-20 14:07:10,086 - INFO - batch_edge_ids shape: (200,) | sample: [29929 22502 84042 26126  8170]
+2025-08-20 14:07:10,086 - INFO - Timestamp range: 5007.00 - 1862652.00
+2025-08-20 14:07:10,086 - INFO - Node ID range: src=[2-6129], dst=[8229-9178]
+2025-08-20 14:07:10,086 - INFO - ====================================
+2025-08-20 14:07:10,148 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:07:10,148 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:07:10,148 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:07:10,148 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:07:10,148 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:07:10,148 - INFO - ==================================
+2025-08-20 14:08:17,432 - INFO - Epoch  68/100 | Loss: 0.1256 | Time: 67.36s
+2025-08-20 14:08:17,453 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:08:17,453 - INFO - Batch size (config): 200
+2025-08-20 14:08:17,453 - INFO - Actual batch size: 200
+2025-08-20 14:08:17,453 - INFO - batch_src_nodes shape: (200,) | sample: [1377   19  376 4754  995]
+2025-08-20 14:08:17,453 - INFO - batch_dst_nodes shape: (200,) | sample: [8503 8245 8476 8807 8634]
+2025-08-20 14:08:17,454 - INFO - batch_timestamps shape: (200,) | sample: [1312657.  489017.  141269. 1289311.  752904.]
+2025-08-20 14:08:17,454 - INFO - batch_edge_ids shape: (200,) | sample: [75427 24125  5535 73994 40759]
+2025-08-20 14:08:17,454 - INFO - Timestamp range: 465.00 - 1861652.00
+2025-08-20 14:08:17,454 - INFO - Node ID range: src=[2-6439], dst=[8229-9167]
+2025-08-20 14:08:17,454 - INFO - ====================================
+2025-08-20 14:08:17,568 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:08:17,573 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:08:17,573 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:08:17,573 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:08:17,573 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:08:17,573 - INFO - ==================================
+2025-08-20 14:09:23,089 - INFO - Epoch  69/100 | Loss: 0.1257 | Time: 65.66s
+2025-08-20 14:09:23,094 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:09:23,094 - INFO - Batch size (config): 200
+2025-08-20 14:09:23,094 - INFO - Actual batch size: 200
+2025-08-20 14:09:23,094 - INFO - batch_src_nodes shape: (200,) | sample: [ 919 1885  184 2178 2975]
+2025-08-20 14:09:23,094 - INFO - batch_dst_nodes shape: (200,) | sample: [8412 9010 8368 8881 8561]
+2025-08-20 14:09:23,094 - INFO - batch_timestamps shape: (200,) | sample: [1177273.  802163. 1163296.  669997.  701067.]
+2025-08-20 14:09:23,095 - INFO - batch_edge_ids shape: (200,) | sample: [66662 43990 65740 35561 38028]
+2025-08-20 14:09:23,095 - INFO - Timestamp range: 19124.00 - 1861256.00
+2025-08-20 14:09:23,095 - INFO - Node ID range: src=[5-6492], dst=[8235-9167]
+2025-08-20 14:09:23,095 - INFO - ====================================
+2025-08-20 14:09:23,157 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:09:23,157 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:09:23,157 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:09:23,157 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:09:23,157 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:09:23,157 - INFO - ==================================
+2025-08-20 14:10:46,733 - INFO - save model /home/s2516027/GLCE/checkpoints/wikipedia/models/DyGMamba/DyGMamba_clifford_seed42.pkl
+2025-08-20 14:10:46,940 - INFO - Saved best model to /home/s2516027/GLCE/checkpoints/wikipedia/best_models/best_DyGMamba_clifford_wikipedia.pth
+2025-08-20 14:10:46,941 - INFO - Epoch  70/100 | Loss: 0.1238 | Time: 83.85s
+2025-08-20 14:10:46,952 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:10:46,952 - INFO - Batch size (config): 200
+2025-08-20 14:10:46,952 - INFO - Actual batch size: 200
+2025-08-20 14:10:46,953 - INFO - batch_src_nodes shape: (200,) | sample: [ 624 3805   49  747 5847]
+2025-08-20 14:10:46,953 - INFO - batch_dst_nodes shape: (200,) | sample: [8672 8541 8273 8231 8587]
+2025-08-20 14:10:46,953 - INFO - batch_timestamps shape: (200,) | sample: [1457928.  880171.    5357.  106912. 1597802.]
+2025-08-20 14:10:46,953 - INFO - batch_edge_ids shape: (200,) | sample: [85279 48793   245  4198 94803]
+2025-08-20 14:10:46,953 - INFO - Timestamp range: 5357.00 - 1856026.00
+2025-08-20 14:10:46,953 - INFO - Node ID range: src=[5-6345], dst=[8231-9133]
+2025-08-20 14:10:46,953 - INFO - ====================================
+2025-08-20 14:10:47,019 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:10:47,019 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:10:47,019 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:10:47,019 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:10:47,019 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:10:47,019 - INFO - ==================================
+2025-08-20 14:11:53,213 - INFO - Epoch  71/100 | Loss: 0.1247 | Time: 66.27s
+2025-08-20 14:11:53,216 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:11:53,216 - INFO - Batch size (config): 200
+2025-08-20 14:11:53,216 - INFO - Actual batch size: 200
+2025-08-20 14:11:53,216 - INFO - batch_src_nodes shape: (200,) | sample: [ 616  446 2265 1393 2762]
+2025-08-20 14:11:53,216 - INFO - batch_dst_nodes shape: (200,) | sample: [8973 8433 8819 8235 8553]
+2025-08-20 14:11:53,216 - INFO - batch_timestamps shape: (200,) | sample: [ 767295.  651408. 1005558.  845540.  701533.]
+2025-08-20 14:11:53,216 - INFO - batch_edge_ids shape: (200,) | sample: [41797 34206 56293 46561 38064]
+2025-08-20 14:11:53,216 - INFO - Timestamp range: 10393.00 - 1859102.00
+2025-08-20 14:11:53,216 - INFO - Node ID range: src=[2-6504], dst=[8229-9167]
+2025-08-20 14:11:53,217 - INFO - ====================================
+2025-08-20 14:11:53,279 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:11:53,279 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:11:53,279 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:11:53,279 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:11:53,279 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:11:53,279 - INFO - ==================================
+2025-08-20 14:12:59,536 - INFO - Epoch  72/100 | Loss: 0.1261 | Time: 66.32s
+2025-08-20 14:12:59,545 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:12:59,545 - INFO - Batch size (config): 200
+2025-08-20 14:12:59,545 - INFO - Actual batch size: 200
+2025-08-20 14:12:59,545 - INFO - batch_src_nodes shape: (200,) | sample: [ 997   37 2397 5230 5954]
+2025-08-20 14:12:59,546 - INFO - batch_dst_nodes shape: (200,) | sample: [9164 8589 8905 9105 9157]
+2025-08-20 14:12:59,546 - INFO - batch_timestamps shape: (200,) | sample: [1761918.  359642.  494203. 1355880. 1614863.]
+2025-08-20 14:12:59,546 - INFO - batch_edge_ids shape: (200,) | sample: [104518  17178  24487  78247  95717]
+2025-08-20 14:12:59,546 - INFO - Timestamp range: 2774.00 - 1837915.00
+2025-08-20 14:12:59,546 - INFO - Node ID range: src=[2-6487], dst=[8229-9167]
+2025-08-20 14:12:59,546 - INFO - ====================================
+2025-08-20 14:12:59,664 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:12:59,664 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:12:59,664 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:12:59,664 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:12:59,664 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:12:59,664 - INFO - ==================================
+2025-08-20 14:14:05,304 - INFO - Epoch  73/100 | Loss: 0.1243 | Time: 65.77s
+2025-08-20 14:14:05,308 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:14:05,308 - INFO - Batch size (config): 200
+2025-08-20 14:14:05,308 - INFO - Actual batch size: 200
+2025-08-20 14:14:05,308 - INFO - batch_src_nodes shape: (200,) | sample: [ 356 3486  271 6153 2008]
+2025-08-20 14:14:05,308 - INFO - batch_dst_nodes shape: (200,) | sample: [8369 9084 8433 9166 8861]
+2025-08-20 14:14:05,308 - INFO - batch_timestamps shape: (200,) | sample: [ 535115. 1617060. 1536470. 1705977.  771878.]
+2025-08-20 14:14:05,308 - INFO - batch_edge_ids shape: (200,) | sample: [ 27133  95851  91034 101365  42141]
+2025-08-20 14:14:05,308 - INFO - Timestamp range: 12465.00 - 1849846.00
+2025-08-20 14:14:05,308 - INFO - Node ID range: src=[7-6333], dst=[8234-9177]
+2025-08-20 14:14:05,308 - INFO - ====================================
+2025-08-20 14:14:05,371 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:14:05,371 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:14:05,371 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:14:05,371 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:14:05,371 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:14:05,371 - INFO - ==================================
+2025-08-20 14:15:11,407 - INFO - Epoch  74/100 | Loss: 0.1237 | Time: 66.10s
+2025-08-20 14:15:11,411 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:15:11,411 - INFO - Batch size (config): 200
+2025-08-20 14:15:11,411 - INFO - Actual batch size: 200
+2025-08-20 14:15:11,411 - INFO - batch_src_nodes shape: (200,) | sample: [2789 2489  411 1449 1035]
+2025-08-20 14:15:11,412 - INFO - batch_dst_nodes shape: (200,) | sample: [8523 8956 8295 8541 9043]
+2025-08-20 14:15:11,412 - INFO - batch_timestamps shape: (200,) | sample: [1826038. 1689792.  841568.  279039. 1468788.]
+2025-08-20 14:15:11,412 - INFO - batch_edge_ids shape: (200,) | sample: [108348 100363  46242  12967  86404]
+2025-08-20 14:15:11,412 - INFO - Timestamp range: 1226.00 - 1846024.00
+2025-08-20 14:15:11,412 - INFO - Node ID range: src=[2-6504], dst=[8229-9152]
+2025-08-20 14:15:11,412 - INFO - ====================================
+2025-08-20 14:15:11,474 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:15:11,474 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:15:11,474 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:15:11,474 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:15:11,474 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:15:11,474 - INFO - ==================================
+2025-08-20 14:16:33,715 - INFO - Epoch  75/100 | Loss: 0.1255 | Time: 82.31s
+2025-08-20 14:16:33,721 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:16:33,721 - INFO - Batch size (config): 200
+2025-08-20 14:16:33,721 - INFO - Actual batch size: 200
+2025-08-20 14:16:33,721 - INFO - batch_src_nodes shape: (200,) | sample: [4697 4773   25  510 2001]
+2025-08-20 14:16:33,721 - INFO - batch_dst_nodes shape: (200,) | sample: [9070 9137 8252 8250 8441]
+2025-08-20 14:16:33,721 - INFO - batch_timestamps shape: (200,) | sample: [1169772. 1603365.    2233. 1173182.  404146.]
+2025-08-20 14:16:33,721 - INFO - batch_edge_ids shape: (200,) | sample: [66145 95079    95 66337 19265]
+2025-08-20 14:16:33,721 - INFO - Timestamp range: 2233.00 - 1859659.00
+2025-08-20 14:16:33,721 - INFO - Node ID range: src=[5-6450], dst=[8232-9179]
+2025-08-20 14:16:33,721 - INFO - ====================================
+2025-08-20 14:16:33,786 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:16:33,786 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:16:33,786 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:16:33,786 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:16:33,786 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:16:33,786 - INFO - ==================================
+2025-08-20 14:17:41,357 - INFO - Epoch  76/100 | Loss: 0.1255 | Time: 67.64s
+2025-08-20 14:17:41,362 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:17:41,362 - INFO - Batch size (config): 200
+2025-08-20 14:17:41,362 - INFO - Actual batch size: 200
+2025-08-20 14:17:41,362 - INFO - batch_src_nodes shape: (200,) | sample: [2813  260   14 1006 2918]
+2025-08-20 14:17:41,362 - INFO - batch_dst_nodes shape: (200,) | sample: [8940 8425 8240 8662 8948]
+2025-08-20 14:17:41,362 - INFO - batch_timestamps shape: (200,) | sample: [689606. 274632. 938745. 482000. 843732.]
+2025-08-20 14:17:41,362 - INFO - batch_edge_ids shape: (200,) | sample: [37211 12693 51929 23677 46420]
+2025-08-20 14:17:41,362 - INFO - Timestamp range: 17593.00 - 1862137.00
+2025-08-20 14:17:41,362 - INFO - Node ID range: src=[2-6464], dst=[8229-9167]
+2025-08-20 14:17:41,362 - INFO - ====================================
+2025-08-20 14:17:41,426 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:17:41,426 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:17:41,426 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:17:41,426 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:17:41,426 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:17:41,426 - INFO - ==================================
+2025-08-20 14:18:46,766 - INFO - Epoch  77/100 | Loss: 0.1238 | Time: 65.41s
+2025-08-20 14:18:46,770 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:18:46,770 - INFO - Batch size (config): 200
+2025-08-20 14:18:46,770 - INFO - Actual batch size: 200
+2025-08-20 14:18:46,770 - INFO - batch_src_nodes shape: (200,) | sample: [2567 2567   28 1252  510]
+2025-08-20 14:18:46,770 - INFO - batch_dst_nodes shape: (200,) | sample: [9017 9017 8255 8641 8526]
+2025-08-20 14:18:46,771 - INFO - batch_timestamps shape: (200,) | sample: [ 944570. 1464719.   87312. 1269543. 1020802.]
+2025-08-20 14:18:46,771 - INFO - batch_edge_ids shape: (200,) | sample: [52416 86067  3546 72670 57476]
+2025-08-20 14:18:46,771 - INFO - Timestamp range: 21478.00 - 1862333.00
+2025-08-20 14:18:46,771 - INFO - Node ID range: src=[5-6344], dst=[8245-9167]
+2025-08-20 14:18:46,771 - INFO - ====================================
+2025-08-20 14:18:46,834 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:18:46,835 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:18:46,835 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:18:46,835 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:18:46,835 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:18:46,835 - INFO - ==================================
+2025-08-20 14:19:56,100 - INFO - Epoch  78/100 | Loss: 0.1241 | Time: 69.33s
+2025-08-20 14:19:56,109 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:19:56,109 - INFO - Batch size (config): 200
+2025-08-20 14:19:56,109 - INFO - Actual batch size: 200
+2025-08-20 14:19:56,109 - INFO - batch_src_nodes shape: (200,) | sample: [4551 3762  194 2940 1762]
+2025-08-20 14:19:56,109 - INFO - batch_dst_nodes shape: (200,) | sample: [9069 9025 8374 8974 8317]
+2025-08-20 14:19:56,110 - INFO - batch_timestamps shape: (200,) | sample: [1112958.  885596.  415958.  793622.  434486.]
+2025-08-20 14:19:56,110 - INFO - batch_edge_ids shape: (200,) | sample: [63067 49018 20066 43430 21103]
+2025-08-20 14:19:56,110 - INFO - Timestamp range: 4408.00 - 1850441.00
+2025-08-20 14:19:56,110 - INFO - Node ID range: src=[2-6459], dst=[8229-9164]
+2025-08-20 14:19:56,110 - INFO - ====================================
+2025-08-20 14:19:56,228 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:19:56,229 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:19:56,229 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:19:56,229 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:19:56,229 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:19:56,229 - INFO - ==================================
+2025-08-20 14:21:03,771 - INFO - Epoch  79/100 | Loss: 0.1260 | Time: 67.67s
+2025-08-20 14:21:03,775 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:21:03,775 - INFO - Batch size (config): 200
+2025-08-20 14:21:03,775 - INFO - Actual batch size: 200
+2025-08-20 14:21:03,776 - INFO - batch_src_nodes shape: (200,) | sample: [ 609  338 5466  443 1828]
+2025-08-20 14:21:03,776 - INFO - batch_dst_nodes shape: (200,) | sample: [8885 8461 9095 8505 8248]
+2025-08-20 14:21:03,776 - INFO - batch_timestamps shape: (200,) | sample: [ 522993.  811825. 1419883. 1605835. 1285461.]
+2025-08-20 14:21:03,776 - INFO - batch_edge_ids shape: (200,) | sample: [26438 44556 82450 95172 73741]
+2025-08-20 14:21:03,776 - INFO - Timestamp range: 7223.00 - 1859312.00
+2025-08-20 14:21:03,776 - INFO - Node ID range: src=[4-6331], dst=[8231-9167]
+2025-08-20 14:21:03,776 - INFO - ====================================
+2025-08-20 14:21:03,838 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:21:03,838 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:21:03,838 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:21:03,838 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:21:03,838 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:21:03,838 - INFO - ==================================
+2025-08-20 14:22:26,219 - INFO - Epoch  80/100 | Loss: 0.1251 | Time: 82.45s
+2025-08-20 14:22:26,223 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:22:26,224 - INFO - Batch size (config): 200
+2025-08-20 14:22:26,224 - INFO - Actual batch size: 200
+2025-08-20 14:22:26,224 - INFO - batch_src_nodes shape: (200,) | sample: [ 401 1595 1140 2742 1563]
+2025-08-20 14:22:26,224 - INFO - batch_dst_nodes shape: (200,) | sample: [8568 8664 8946 8780 8975]
+2025-08-20 14:22:26,224 - INFO - batch_timestamps shape: (200,) | sample: [1336891. 1697261. 1390113. 1655029.  963694.]
+2025-08-20 14:22:26,224 - INFO - batch_edge_ids shape: (200,) | sample: [ 76832 100797  81006  98433  53650]
+2025-08-20 14:22:26,224 - INFO - Timestamp range: 59176.00 - 1833082.00
+2025-08-20 14:22:26,224 - INFO - Node ID range: src=[2-6394], dst=[8229-9172]
+2025-08-20 14:22:26,224 - INFO - ====================================
+2025-08-20 14:22:26,288 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:22:26,288 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:22:26,288 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:22:26,288 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:22:26,288 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:22:26,288 - INFO - ==================================
+2025-08-20 14:23:34,800 - INFO - Epoch  81/100 | Loss: 0.1253 | Time: 68.58s
+2025-08-20 14:23:34,803 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:23:34,804 - INFO - Batch size (config): 200
+2025-08-20 14:23:34,804 - INFO - Actual batch size: 200
+2025-08-20 14:23:34,804 - INFO - batch_src_nodes shape: (200,) | sample: [2779 3763 1090  579 3475]
+2025-08-20 14:23:34,804 - INFO - batch_dst_nodes shape: (200,) | sample: [8798 9026 9115 8316 8813]
+2025-08-20 14:23:34,804 - INFO - batch_timestamps shape: (200,) | sample: [ 601105. 1579235. 1478110.   77805. 1356811.]
+2025-08-20 14:23:34,804 - INFO - batch_edge_ids shape: (200,) | sample: [31468 93881 87119  3044 78331]
+2025-08-20 14:23:34,804 - INFO - Timestamp range: 809.00 - 1858848.00
+2025-08-20 14:23:34,804 - INFO - Node ID range: src=[4-6336], dst=[8230-9164]
+2025-08-20 14:23:34,804 - INFO - ====================================
+2025-08-20 14:23:34,866 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:23:34,866 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:23:34,866 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:23:34,866 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:23:34,866 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:23:34,866 - INFO - ==================================
+2025-08-20 14:24:41,808 - INFO - Epoch  82/100 | Loss: 0.1253 | Time: 67.01s
+2025-08-20 14:24:41,812 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:24:41,812 - INFO - Batch size (config): 200
+2025-08-20 14:24:41,812 - INFO - Actual batch size: 200
+2025-08-20 14:24:41,812 - INFO - batch_src_nodes shape: (200,) | sample: [5554 2658  864   49 3814]
+2025-08-20 14:24:41,813 - INFO - batch_dst_nodes shape: (200,) | sample: [9093 8929 8648 8273 8724]
+2025-08-20 14:24:41,813 - INFO - batch_timestamps shape: (200,) | sample: [1456486.  554353. 1381663. 1130779.  883875.]
+2025-08-20 14:24:41,813 - INFO - batch_edge_ids shape: (200,) | sample: [85164 28252 80371 64154 48926]
+2025-08-20 14:24:41,813 - INFO - Timestamp range: 4275.00 - 1849700.00
+2025-08-20 14:24:41,813 - INFO - Node ID range: src=[2-5895], dst=[8229-9174]
+2025-08-20 14:24:41,813 - INFO - ====================================
+2025-08-20 14:24:41,875 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:24:41,875 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:24:41,875 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:24:41,875 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:24:41,875 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:24:41,876 - INFO - ==================================
+2025-08-20 14:25:48,735 - INFO - Epoch  83/100 | Loss: 0.1245 | Time: 66.93s
+2025-08-20 14:25:48,741 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:25:48,741 - INFO - Batch size (config): 200
+2025-08-20 14:25:48,741 - INFO - Actual batch size: 200
+2025-08-20 14:25:48,741 - INFO - batch_src_nodes shape: (200,) | sample: [  64 4869  380 4849 2975]
+2025-08-20 14:25:48,742 - INFO - batch_dst_nodes shape: (200,) | sample: [8695 9118 8479 9083 8561]
+2025-08-20 14:25:48,742 - INFO - batch_timestamps shape: (200,) | sample: [1047606. 1735742. 1447798. 1202251.  626516.]
+2025-08-20 14:25:48,742 - INFO - batch_edge_ids shape: (200,) | sample: [ 59442 103262  84390  68440  32927]
+2025-08-20 14:25:48,742 - INFO - Timestamp range: 6167.00 - 1834121.00
+2025-08-20 14:25:48,742 - INFO - Node ID range: src=[2-6074], dst=[8229-9165]
+2025-08-20 14:25:48,742 - INFO - ====================================
+2025-08-20 14:25:48,805 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:25:48,805 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:25:48,805 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:25:48,805 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:25:48,805 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:25:48,805 - INFO - ==================================
+2025-08-20 14:26:54,480 - INFO - Epoch  84/100 | Loss: 0.1239 | Time: 65.74s
+2025-08-20 14:26:54,484 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:26:54,484 - INFO - Batch size (config): 200
+2025-08-20 14:26:54,484 - INFO - Actual batch size: 200
+2025-08-20 14:26:54,484 - INFO - batch_src_nodes shape: (200,) | sample: [ 411    5 5385 3539  499]
+2025-08-20 14:26:54,484 - INFO - batch_dst_nodes shape: (200,) | sample: [8295 8726 8549 8334 8761]
+2025-08-20 14:26:54,484 - INFO - batch_timestamps shape: (200,) | sample: [ 842011.  451893. 1379181.  790112.  492507.]
+2025-08-20 14:26:54,485 - INFO - batch_edge_ids shape: (200,) | sample: [46292 22022 80117 43220 24381]
+2025-08-20 14:26:54,485 - INFO - Timestamp range: 4188.00 - 1861788.00
+2025-08-20 14:26:54,485 - INFO - Node ID range: src=[2-6263], dst=[8229-9167]
+2025-08-20 14:26:54,485 - INFO - ====================================
+2025-08-20 14:26:54,546 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:26:54,546 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:26:54,546 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:26:54,546 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:26:54,546 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:26:54,547 - INFO - ==================================
+2025-08-20 14:28:16,405 - INFO - Epoch  85/100 | Loss: 0.1245 | Time: 81.92s
+2025-08-20 14:28:16,410 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:28:16,410 - INFO - Batch size (config): 200
+2025-08-20 14:28:16,410 - INFO - Actual batch size: 200
+2025-08-20 14:28:16,410 - INFO - batch_src_nodes shape: (200,) | sample: [1719  610 1989 1817 1285]
+2025-08-20 14:28:16,410 - INFO - batch_dst_nodes shape: (200,) | sample: [8756 8376 8356 8830 8744]
+2025-08-20 14:28:16,410 - INFO - batch_timestamps shape: (200,) | sample: [ 323031. 1723965. 1345921. 1196017.  545292.]
+2025-08-20 14:28:16,410 - INFO - batch_edge_ids shape: (200,) | sample: [ 14968 102594  77478  67951  27795]
+2025-08-20 14:28:16,410 - INFO - Timestamp range: 5928.00 - 1862645.00
+2025-08-20 14:28:16,410 - INFO - Node ID range: src=[2-6492], dst=[8229-9167]
+2025-08-20 14:28:16,410 - INFO - ====================================
+2025-08-20 14:28:16,476 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:28:16,476 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:28:16,476 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:28:16,476 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:28:16,476 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:28:16,476 - INFO - ==================================
+2025-08-20 14:29:22,507 - INFO - Epoch  86/100 | Loss: 0.1261 | Time: 66.10s
+2025-08-20 14:29:22,511 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:29:22,511 - INFO - Batch size (config): 200
+2025-08-20 14:29:22,511 - INFO - Actual batch size: 200
+2025-08-20 14:29:22,511 - INFO - batch_src_nodes shape: (200,) | sample: [ 423 3613 1096 5847 3913]
+2025-08-20 14:29:22,511 - INFO - batch_dst_nodes shape: (200,) | sample: [8831 9104 8538 8587 9006]
+2025-08-20 14:29:22,512 - INFO - batch_timestamps shape: (200,) | sample: [ 669112. 1352465.  411780. 1660661. 1088237.]
+2025-08-20 14:29:22,512 - INFO - batch_edge_ids shape: (200,) | sample: [35490 77951 19827 98727 61553]
+2025-08-20 14:29:22,512 - INFO - Timestamp range: 19043.00 - 1841939.00
+2025-08-20 14:29:22,512 - INFO - Node ID range: src=[2-6319], dst=[8229-9167]
+2025-08-20 14:29:22,512 - INFO - ====================================
+2025-08-20 14:29:22,573 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:29:22,573 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:29:22,573 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:29:22,573 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:29:22,573 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:29:22,573 - INFO - ==================================
+2025-08-20 14:30:29,917 - INFO - Epoch  87/100 | Loss: 0.1253 | Time: 67.41s
+2025-08-20 14:30:29,929 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:30:29,929 - INFO - Batch size (config): 200
+2025-08-20 14:30:29,929 - INFO - Actual batch size: 200
+2025-08-20 14:30:29,929 - INFO - batch_src_nodes shape: (200,) | sample: [   5 1343 1486  483 1258]
+2025-08-20 14:30:29,929 - INFO - batch_dst_nodes shape: (200,) | sample: [8731 8511 8777 8319 9038]
+2025-08-20 14:30:29,929 - INFO - batch_timestamps shape: (200,) | sample: [1190351. 1383653. 1454774.  143901. 1003554.]
+2025-08-20 14:30:29,930 - INFO - batch_edge_ids shape: (200,) | sample: [67580 80566 84977  5702 56131]
+2025-08-20 14:30:29,930 - INFO - Timestamp range: 2313.00 - 1848998.00
+2025-08-20 14:30:29,930 - INFO - Node ID range: src=[2-6439], dst=[8229-9167]
+2025-08-20 14:30:29,930 - INFO - ====================================
+2025-08-20 14:30:29,998 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:30:29,998 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:30:29,998 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:30:29,998 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:30:29,998 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:30:29,998 - INFO - ==================================
+2025-08-20 14:31:37,877 - INFO - Epoch  88/100 | Loss: 0.1229 | Time: 67.96s
+2025-08-20 14:31:37,889 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:31:37,889 - INFO - Batch size (config): 200
+2025-08-20 14:31:37,889 - INFO - Actual batch size: 200
+2025-08-20 14:31:37,890 - INFO - batch_src_nodes shape: (200,) | sample: [ 513  446 2577 3678 1088]
+2025-08-20 14:31:37,890 - INFO - batch_dst_nodes shape: (200,) | sample: [8528 8433 8908 9004 8988]
+2025-08-20 14:31:37,890 - INFO - batch_timestamps shape: (200,) | sample: [  68418.  508809. 1516317.  844350.  924466.]
+2025-08-20 14:31:37,890 - INFO - batch_edge_ids shape: (200,) | sample: [ 2574 25455 89718 46469 51008]
+2025-08-20 14:31:37,890 - INFO - Timestamp range: 23223.00 - 1855429.00
+2025-08-20 14:31:37,890 - INFO - Node ID range: src=[2-6513], dst=[8229-9177]
+2025-08-20 14:31:37,890 - INFO - ====================================
+2025-08-20 14:31:37,980 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:31:37,980 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:31:37,981 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:31:37,981 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:31:37,981 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:31:37,981 - INFO - ==================================
+2025-08-20 14:32:43,803 - INFO - Epoch  89/100 | Loss: 0.1234 | Time: 65.93s
+2025-08-20 14:32:43,807 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:32:43,807 - INFO - Batch size (config): 200
+2025-08-20 14:32:43,807 - INFO - Actual batch size: 200
+2025-08-20 14:32:43,807 - INFO - batch_src_nodes shape: (200,) | sample: [5519   69  657 2152 2779]
+2025-08-20 14:32:43,807 - INFO - batch_dst_nodes shape: (200,) | sample: [9144 9089 8554 8641 8798]
+2025-08-20 14:32:43,808 - INFO - batch_timestamps shape: (200,) | sample: [1704289. 1330323. 1488106. 1593138.  666752.]
+2025-08-20 14:32:43,808 - INFO - batch_edge_ids shape: (200,) | sample: [101243  76445  87821  94547  35281]
+2025-08-20 14:32:43,808 - INFO - Timestamp range: 2830.00 - 1851819.00
+2025-08-20 14:32:43,808 - INFO - Node ID range: src=[4-6238], dst=[8231-9167]
+2025-08-20 14:32:43,808 - INFO - ====================================
+2025-08-20 14:32:43,870 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:32:43,870 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:32:43,870 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:32:43,870 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:32:43,870 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:32:43,870 - INFO - ==================================
+2025-08-20 14:34:05,873 - INFO - Epoch  90/100 | Loss: 0.1237 | Time: 82.07s
+2025-08-20 14:34:05,878 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:34:05,878 - INFO - Batch size (config): 200
+2025-08-20 14:34:05,878 - INFO - Actual batch size: 200
+2025-08-20 14:34:05,878 - INFO - batch_src_nodes shape: (200,) | sample: [ 125 1986  688   40 1075]
+2025-08-20 14:34:05,878 - INFO - batch_dst_nodes shape: (200,) | sample: [8333 8590 8640 8851 9057]
+2025-08-20 14:34:05,878 - INFO - batch_timestamps shape: (200,) | sample: [ 702045. 1458207. 1208721. 1082052. 1540092.]
+2025-08-20 14:34:05,879 - INFO - batch_edge_ids shape: (200,) | sample: [38088 85306 68984 61287 91248]
+2025-08-20 14:34:05,879 - INFO - Timestamp range: 4188.00 - 1848085.00
+2025-08-20 14:34:05,879 - INFO - Node ID range: src=[2-6396], dst=[8229-9167]
+2025-08-20 14:34:05,879 - INFO - ====================================
+2025-08-20 14:34:05,943 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:34:05,943 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:34:05,943 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:34:05,943 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:34:05,943 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:34:05,943 - INFO - ==================================
+2025-08-20 14:35:11,782 - INFO - Epoch  91/100 | Loss: 0.1232 | Time: 65.91s
+2025-08-20 14:35:11,786 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:35:11,787 - INFO - Batch size (config): 200
+2025-08-20 14:35:11,787 - INFO - Actual batch size: 200
+2025-08-20 14:35:11,787 - INFO - batch_src_nodes shape: (200,) | sample: [  51  850 5312 2922 1523]
+2025-08-20 14:35:11,787 - INFO - batch_dst_nodes shape: (200,) | sample: [8300 8642 9087 8949 8314]
+2025-08-20 14:35:11,787 - INFO - batch_timestamps shape: (200,) | sample: [ 165303.  502022. 1384533.  612414.  285201.]
+2025-08-20 14:35:11,787 - INFO - batch_edge_ids shape: (200,) | sample: [ 6911 25032 80628 32027 13306]
+2025-08-20 14:35:11,787 - INFO - Timestamp range: 3032.00 - 1862411.00
+2025-08-20 14:35:11,787 - INFO - Node ID range: src=[2-6470], dst=[8229-9167]
+2025-08-20 14:35:11,787 - INFO - ====================================
+2025-08-20 14:35:11,850 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:35:11,850 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:35:11,851 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:35:11,851 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:35:11,851 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:35:11,851 - INFO - ==================================
+2025-08-20 14:36:18,640 - INFO - Epoch  92/100 | Loss: 0.1259 | Time: 66.86s
+2025-08-20 14:36:18,646 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:36:18,646 - INFO - Batch size (config): 200
+2025-08-20 14:36:18,646 - INFO - Actual batch size: 200
+2025-08-20 14:36:18,646 - INFO - batch_src_nodes shape: (200,) | sample: [1258  423  616  225 3427]
+2025-08-20 14:36:18,646 - INFO - batch_dst_nodes shape: (200,) | sample: [8959 8499 8973 8394 9000]
+2025-08-20 14:36:18,646 - INFO - batch_timestamps shape: (200,) | sample: [1334642.  697446. 1163230. 1148638. 1277870.]
+2025-08-20 14:36:18,646 - INFO - batch_edge_ids shape: (200,) | sample: [76657 37799 65731 64958 73272]
+2025-08-20 14:36:18,646 - INFO - Timestamp range: 17477.00 - 1862489.00
+2025-08-20 14:36:18,646 - INFO - Node ID range: src=[2-6129], dst=[8229-9177]
+2025-08-20 14:36:18,646 - INFO - ====================================
+2025-08-20 14:36:18,710 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:36:18,710 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:36:18,710 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:36:18,710 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:36:18,710 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:36:18,710 - INFO - ==================================
+2025-08-20 14:37:25,014 - INFO - Epoch  93/100 | Loss: 0.1240 | Time: 66.37s
+2025-08-20 14:37:25,018 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:37:25,018 - INFO - Batch size (config): 200
+2025-08-20 14:37:25,018 - INFO - Actual batch size: 200
+2025-08-20 14:37:25,018 - INFO - batch_src_nodes shape: (200,) | sample: [ 320 1047 4912 1035  152]
+2025-08-20 14:37:25,018 - INFO - batch_dst_nodes shape: (200,) | sample: [8373 8684 8807 8694 8297]
+2025-08-20 14:37:25,018 - INFO - batch_timestamps shape: (200,) | sample: [ 518003. 1340483. 1213692.  220613.   68491.]
+2025-08-20 14:37:25,019 - INFO - batch_edge_ids shape: (200,) | sample: [26067 77034 69478  9433  2578]
+2025-08-20 14:37:25,019 - INFO - Timestamp range: 4669.00 - 1862063.00
+2025-08-20 14:37:25,019 - INFO - Node ID range: src=[2-6280], dst=[8229-9167]
+2025-08-20 14:37:25,019 - INFO - ====================================
+2025-08-20 14:37:25,083 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:37:25,083 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:37:25,083 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:37:25,083 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:37:25,083 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:37:25,083 - INFO - ==================================
+2025-08-20 14:38:31,433 - INFO - Epoch  94/100 | Loss: 0.1242 | Time: 66.42s
+2025-08-20 14:38:31,437 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:38:31,437 - INFO - Batch size (config): 200
+2025-08-20 14:38:31,437 - INFO - Actual batch size: 200
+2025-08-20 14:38:31,438 - INFO - batch_src_nodes shape: (200,) | sample: [ 165 1203 4869 1796    5]
+2025-08-20 14:38:31,438 - INFO - batch_dst_nodes shape: (200,) | sample: [8784 8350 9086 8337 9071]
+2025-08-20 14:38:31,438 - INFO - batch_timestamps shape: (200,) | sample: [ 896766. 1573885. 1217869.  877131. 1124481.]
+2025-08-20 14:38:31,438 - INFO - batch_edge_ids shape: (200,) | sample: [49530 93487 69805 48661 63822]
+2025-08-20 14:38:31,438 - INFO - Timestamp range: 7251.00 - 1839174.00
+2025-08-20 14:38:31,438 - INFO - Node ID range: src=[5-6437], dst=[8239-9172]
+2025-08-20 14:38:31,438 - INFO - ====================================
+2025-08-20 14:38:31,500 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:38:31,500 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:38:31,500 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:38:31,500 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:38:31,500 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:38:31,500 - INFO - ==================================
+2025-08-20 14:39:54,150 - INFO - Epoch  95/100 | Loss: 0.1257 | Time: 82.72s
+2025-08-20 14:39:54,155 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:39:54,155 - INFO - Batch size (config): 200
+2025-08-20 14:39:54,155 - INFO - Actual batch size: 200
+2025-08-20 14:39:54,155 - INFO - batch_src_nodes shape: (200,) | sample: [ 336 4086 1285 2322 1862]
+2025-08-20 14:39:54,155 - INFO - batch_dst_nodes shape: (200,) | sample: [8522 9140 8744 8900 8844]
+2025-08-20 14:39:54,155 - INFO - batch_timestamps shape: (200,) | sample: [1785032. 1833073. 1517419. 1026313.  353026.]
+2025-08-20 14:39:54,155 - INFO - batch_edge_ids shape: (200,) | sample: [105793 108784  89774  57872  16840]
+2025-08-20 14:39:54,155 - INFO - Timestamp range: 36999.00 - 1851745.00
+2025-08-20 14:39:54,155 - INFO - Node ID range: src=[2-6336], dst=[8229-9167]
+2025-08-20 14:39:54,155 - INFO - ====================================
+2025-08-20 14:39:54,220 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:39:54,220 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:39:54,220 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:39:54,220 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:39:54,220 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:39:54,220 - INFO - ==================================
+2025-08-20 14:41:02,292 - INFO - Epoch  96/100 | Loss: 0.1237 | Time: 68.14s
+2025-08-20 14:41:02,296 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:41:02,296 - INFO - Batch size (config): 200
+2025-08-20 14:41:02,296 - INFO - Actual batch size: 200
+2025-08-20 14:41:02,296 - INFO - batch_src_nodes shape: (200,) | sample: [4814 5298 1748 5735  338]
+2025-08-20 14:41:02,296 - INFO - batch_dst_nodes shape: (200,) | sample: [9020 8807 8351 8348 8461]
+2025-08-20 14:41:02,296 - INFO - batch_timestamps shape: (200,) | sample: [1295911. 1356589.  329634. 1515973. 1257121.]
+2025-08-20 14:41:02,297 - INFO - batch_edge_ids shape: (200,) | sample: [74488 78316 15385 89700 71936]
+2025-08-20 14:41:02,297 - INFO - Timestamp range: 17360.00 - 1848503.00
+2025-08-20 14:41:02,297 - INFO - Node ID range: src=[7-6504], dst=[8234-9177]
+2025-08-20 14:41:02,297 - INFO - ====================================
+2025-08-20 14:41:02,359 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:41:02,359 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:41:02,359 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:41:02,359 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:41:02,359 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:41:02,359 - INFO - ==================================
+2025-08-20 14:42:08,622 - INFO - Epoch  97/100 | Loss: 0.1239 | Time: 66.33s
+2025-08-20 14:42:08,628 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:42:08,628 - INFO - Batch size (config): 200
+2025-08-20 14:42:08,628 - INFO - Actual batch size: 200
+2025-08-20 14:42:08,629 - INFO - batch_src_nodes shape: (200,) | sample: [3980  271 1788   49 1788]
+2025-08-20 14:42:08,629 - INFO - batch_dst_nodes shape: (200,) | sample: [8875 8433 8827 8273 8827]
+2025-08-20 14:42:08,629 - INFO - batch_timestamps shape: (200,) | sample: [1003810. 1282935.  339279. 1309967.  343601.]
+2025-08-20 14:42:08,629 - INFO - batch_edge_ids shape: (200,) | sample: [56148 73578 16077 75277 16348]
+2025-08-20 14:42:08,629 - INFO - Timestamp range: 4058.00 - 1862374.00
+2025-08-20 14:42:08,629 - INFO - Node ID range: src=[5-5981], dst=[8234-9160]
+2025-08-20 14:42:08,629 - INFO - ====================================
+2025-08-20 14:42:08,691 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:42:08,692 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:42:08,692 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:42:08,692 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:42:08,692 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:42:08,692 - INFO - ==================================
+2025-08-20 14:43:13,876 - INFO - Epoch  98/100 | Loss: 0.1229 | Time: 65.25s
+2025-08-20 14:43:13,901 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-20 14:43:13,906 - INFO - Batch size (config): 200
+2025-08-20 14:43:13,907 - INFO - Actual batch size: 200
+2025-08-20 14:43:13,907 - INFO - batch_src_nodes shape: (200,) | sample: [ 624 3093 5789 4865 5343]
+2025-08-20 14:43:13,907 - INFO - batch_dst_nodes shape: (200,) | sample: [8383 8546 9146 9083 8604]
+2025-08-20 14:43:13,907 - INFO - batch_timestamps shape: (200,) | sample: [1719451.  666869. 1796296. 1214627. 1369311.]
+2025-08-20 14:43:13,907 - INFO - batch_edge_ids shape: (200,) | sample: [102275  35288 106518  69571  79399]
+2025-08-20 14:43:13,908 - INFO - Timestamp range: 2830.00 - 1859102.00
+2025-08-20 14:43:13,908 - INFO - Node ID range: src=[5-5857], dst=[8232-9153]
+2025-08-20 14:43:13,908 - INFO - ====================================
+2025-08-20 14:43:13,984 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-20 14:43:13,984 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:43:13,984 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-20 14:43:13,984 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-20 14:43:13,984 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-20 14:43:13,984 - INFO - ==================================
+2025-08-20 14:44:36,352 - INFO - save model /home/s2516027/GLCE/checkpoints/wikipedia/models/DyGMamba/DyGMamba_clifford_seed42.pkl
+2025-08-20 14:44:36,539 - INFO - Saved best model to /home/s2516027/GLCE/checkpoints/wikipedia/best_models/best_DyGMamba_clifford_wikipedia.pth
+2025-08-20 14:44:36,540 - INFO - Epoch  99/100 | Loss: 0.1234 | Time: 82.66s
+2025-08-20 14:44:36,540 - INFO - Training completed in 7006.64s
+2025-08-20 14:44:36,540 - INFO - Final evaluation...
+2025-08-20 14:46:13,683 - INFO - Saved evaluation results to /home/s2516027/GLCE/results/wikipedia/evaluations/eval_DyGMamba_clifford_wikipedia_seed42.json
+2025-08-20 14:46:13,719 - INFO - Saved run 0 results to /home/s2516027/GLCE/results/wikipedia/runs/run0_DyGMamba_clifford_wikipedia.json
+2025-08-20 14:46:13,720 - INFO - 
+==================================================
+2025-08-20 14:46:13,720 - INFO - FINAL RESULTS - DyGMamba with clifford
+2025-08-20 14:46:13,720 - INFO - ==================================================
+2025-08-20 14:46:13,720 - INFO - train_auc: 0.9889 ± 0.0000
+2025-08-20 14:46:13,720 - INFO - train_ap: 0.9894 ± 0.0000
+2025-08-20 14:46:13,720 - INFO - val_auc: 0.9911 ± 0.0000
+2025-08-20 14:46:13,720 - INFO - val_ap: 0.9917 ± 0.0000
+2025-08-20 14:46:13,720 - INFO - test_auc: 0.9888 ± 0.0000
+2025-08-20 14:46:13,720 - INFO - test_ap: 0.9898 ± 0.0000
+2025-08-20 14:46:13,720 - INFO - new_val_auc: 0.9879 ± 0.0000
+2025-08-20 14:46:13,721 - INFO - new_val_ap: 0.9880 ± 0.0000
+2025-08-20 14:46:13,721 - INFO - new_test_auc: 0.9836 ± 0.0000
+2025-08-20 14:46:13,721 - INFO - new_test_ap: 0.9847 ± 0.0000
+2025-08-20 14:46:13,728 - INFO - Aggregate results saved to /home/s2516027/GLCE/results/wikipedia/aggregated/results_DyGMamba_clifford_wikipedia.txt
+2025-08-20 14:46:13,733 - INFO - Summary JSON saved to /home/s2516027/GLCE/results/wikipedia/aggregated/summary_DyGMamba_clifford_wikipedia.json

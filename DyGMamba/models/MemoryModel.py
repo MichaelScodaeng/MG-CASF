@@ -3,8 +3,14 @@ import numpy as np
 import torch.nn as nn
 from collections import defaultdict
 
-from ..utils.utils import NeighborSampler
-from .modules import TimeEncoder, MergeLayer, MultiHeadAttention
+try:
+    from utils.utils import NeighborSampler
+    from models.modules import TimeEncoder, MergeLayer, MultiHeadAttention
+except ImportError:
+    import sys, os
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from utils.utils import NeighborSampler
+    from modules import TimeEncoder, MergeLayer, MultiHeadAttention
 
 
 class MemoryModel(torch.nn.Module):

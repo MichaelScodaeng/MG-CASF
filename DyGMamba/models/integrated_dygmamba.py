@@ -284,10 +284,10 @@ class TemporalSequencePreparer:
             node_indices: List[int] - Corresponding node indices
         """
         # Get temporal neighbors
-        neighbors, edge_idxs, edge_times = neighbor_sampler.get_temporal_neighbor(
+        neighbors, edge_idxs, edge_times = neighbor_sampler.get_historical_neighbors(
             node_ids=np.array([node_id.item()]),
-            timestamps=np.array([timestamp.item()]),
-            n_neighbors=max_sequence_length - 1
+            node_interact_times=np.array([timestamp.item()]),
+            num_neighbors=max_sequence_length - 1
         )
         
         # Start with the target node

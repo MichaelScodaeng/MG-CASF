@@ -1,15 +1,22 @@
+from typing import Dict
 """Integrated TGAT (Temporal Graph Attention Network) with Integrated MPGNN.
 Clean rebuild after corruption.
 """
-from typing import Dict
 import math
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .integrated_mpgnn_backbone import IntegratedMPGNNBackbone
-from .modules import TimeEncoder
-from ..utils.utils import NeighborSampler
+try:
+    from models.integrated_mpgnn_backbone import IntegratedMPGNNBackbone
+    from models.modules import TimeEncoder
+    from utils.utils import NeighborSampler
+except ImportError:
+    import sys, os
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from integrated_mpgnn_backbone import IntegratedMPGNNBackbone
+    from modules import TimeEncoder
+    from utils import NeighborSampler
 
 class IntegratedTGAT(IntegratedMPGNNBackbone):
     def __init__(self, config: Dict, node_raw_features: torch.Tensor,
@@ -107,7 +114,8 @@ class _TGATLayer(nn.Module):
         self.edge_projection = nn.Linear(edge_feat_dim, output_dim)
         self.time_projection = nn.Linear(time_feat_dim, output_dim)
         self.attention_combine = nn.Linear(output_dim * 3, output_dim)
-        self.output_projection = nn.Linear(output_dim, output_dim)
+        self.output_projection = nn.Linear(output_dim, output_dim)  # For processed queries
+        self.fallback_projection = nn.Linear(input_dim, output_dim)  # For fallback cases
         self.layer_norm = nn.LayerNorm(output_dim)
         self.dropout_layer = nn.Dropout(dropout)
         self.time_encoder = TimeEncoder(time_dim=time_feat_dim)
@@ -129,10 +137,10 @@ class _TGATLayer(nn.Module):
             if len(ts) == 0:
                 ts = timestamps[:1]
             ref_time = ts[0]
-            neighbors, edge_ids, neighbor_times = neighbor_sampler.get_temporal_neighbor(
+            neighbors, edge_ids, neighbor_times = neighbor_sampler.get_historical_neighbors(
                 node_ids=np.array([nid.item()]),
-                timestamps=np.array([ref_time.item()]),
-                n_neighbors=10
+                node_interact_times=np.array([timestamps[0].item()]),  # Use first timestamp as reference
+                num_neighbors=20
             )
             q = self.query_projection(node_embeddings[node_idx])
             if neighbors is None or len(neighbors[0]) == 0:
@@ -148,14 +156,31 @@ class _TGATLayer(nn.Module):
             num_n = neigh_emb.size(0)
             keys = self.key_projection(neigh_emb).view(num_n, self.num_heads, self.head_dim)
             values = self.value_projection(neigh_emb).view(num_n, self.num_heads, self.head_dim)
-            qh = q.view(self.num_heads, self.head_dim).unsqueeze(0)
+            qh = q.view(self.num_heads, self.head_dim).unsqueeze(1)
             attn_scores = (qh * keys.transpose(0,1)).sum(-1) / math.sqrt(self.head_dim)
             edge_feat = edge_features[0] if edge_features is not None else torch.zeros(self.edge_feat_dim, device=self.device)
             edge_ctx = self.edge_projection(edge_feat).view(self.num_heads, self.head_dim)
             if neighbor_times is not None:
                 times = torch.tensor(neighbor_times[0], device=self.device).float()
+                if times.dim() == 1:
+                    times = times.unsqueeze(-1)
                 t_enc = self.time_encoder(times)
-                time_ctx = self.time_projection(t_enc).view(num_n, self.num_heads, self.head_dim).transpose(0,1)
+                time_proj = self.time_projection(t_enc)  # [num_n, output_dim]
+                # Ensure we can reshape to [num_n, num_heads, head_dim]
+                expected_size = num_n * self.num_heads * self.head_dim
+                if time_proj.numel() != expected_size:
+                    # Pad or truncate to match expected size
+                    time_proj_flat = time_proj.view(-1)
+                    if time_proj_flat.size(0) < expected_size:
+                        # Pad with zeros
+                        padding = torch.zeros(expected_size - time_proj_flat.size(0), device=self.device)
+                        time_proj_flat = torch.cat([time_proj_flat, padding])
+                    else:
+                        # Truncate
+                        time_proj_flat = time_proj_flat[:expected_size]
+                    time_ctx = time_proj_flat.view(num_n, self.num_heads, self.head_dim).transpose(0,1)
+                else:
+                    time_ctx = time_proj.view(num_n, self.num_heads, self.head_dim).transpose(0,1)
             else:
                 time_ctx = torch.zeros(self.num_heads, num_n, self.head_dim, device=self.device)
             attn_scores = attn_scores + (time_ctx.mean(-1))
@@ -173,5 +198,5 @@ class _TGATLayer(nn.Module):
         if self.input_dim == self.output_dim:
             updated[mask] = node_embeddings[mask]
         else:
-            updated[mask] = self.output_projection(node_embeddings[mask])
+            updated[mask] = self.fallback_projection(node_embeddings[mask])
         return updated

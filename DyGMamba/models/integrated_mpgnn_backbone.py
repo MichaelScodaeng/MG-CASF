@@ -21,9 +21,26 @@ import math
 from typing import Dict, List, Tuple, Optional, Union, Any
 from abc import ABC, abstractmethod
 
-from .enhanced_node_feature_manager import EnhancedNodeFeatureManager
-from .modules import TimeEncoder, MergeLayer, FeedForwardNet
-from ..utils.utils import NeighborSampler
+try:
+
+    try:
+        from models.enhanced_node_feature_manager import EnhancedNodeFeatureManager
+        from models.modules import TimeEncoder, MergeLayer, FeedForwardNet
+        from utils.utils import NeighborSampler
+    except ImportError:
+        import sys, os
+        sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from enhanced_node_feature_manager import EnhancedNodeFeatureManager
+        from modules import TimeEncoder, MergeLayer, FeedForwardNet
+        from utils import NeighborSampler
+except ImportError:
+    # Handle direct script execution
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from enhanced_node_feature_manager import EnhancedNodeFeatureManager
+    from modules import TimeEncoder, MergeLayer, FeedForwardNet
+    from utils.utils import NeighborSampler
 
 
 class IntegratedMPGNNBackbone(nn.Module, ABC):
@@ -131,8 +148,8 @@ class IntegratedMPGNNBackbone(nn.Module, ABC):
         Returns:
             node_embeddings: [batch_size, output_dim] - Final embeddings
         """
-    # Step 1: Determine ALL nodes that need enhanced features
-    all_involved_nodes = self._get_all_involved_nodes(
+        # Step 1: Determine ALL nodes that need enhanced features
+        all_involved_nodes = self._get_all_involved_nodes(
             src_node_ids, dst_node_ids, timestamps, num_layers
         )
 
@@ -162,8 +179,8 @@ class IntegratedMPGNNBackbone(nn.Module, ABC):
             timestamps=timestamps,
             edge_features=edge_features,
             num_layers=num_layers
-    )
-    return node_embeddings
+        )
+        return node_embeddings
         
     def _get_all_involved_nodes(self, src_node_ids: torch.Tensor, dst_node_ids: torch.Tensor,
                               timestamps: torch.Tensor, num_layers: int) -> torch.Tensor:
@@ -198,10 +215,11 @@ class IntegratedMPGNNBackbone(nn.Module, ABC):
                     node_timestamp = timestamps[0:1]  # Fallback to first timestamp
                     
                 # Get temporal neighbors
-                neighbors, _, _ = self.neighbor_sampler.get_temporal_neighbor(
+                # Corrected method call to get historical neighbors
+                neighbors, _, _ = self.neighbor_sampler.get_historical_neighbors(
                     node_ids=np.array([node_id.item()]),
-                    timestamps=node_timestamp.cpu().numpy(),
-                    n_neighbors=self.config.get('num_neighbors', 10)
+                    node_interact_times=node_timestamp.cpu().numpy(),
+                    num_neighbors=self.config.get('num_neighbors', 10)
                 )
                 
                 if neighbors is not None and len(neighbors) > 0:
@@ -216,11 +234,10 @@ class IntegratedMPGNNBackbone(nn.Module, ABC):
                 break  # No more neighbors to add
                 
         # Convert back to tensor
-        all_involved_nodes_tensor = torch.tensor(
-            list(all_involved_nodes), 
-            device=self.device, 
-            dtype=torch.long
-        )
+        all_involved_nodes_tensor = torch.tensor(list(all_involved_nodes), dtype=torch.long, device=self.device)
+        
+        # Create a mapping from original node ID to its index in the enhanced features tensor
+        self._enhanced_index_map = {node_id.item(): i for i, node_id in enumerate(all_involved_nodes_tensor)}
         
         return all_involved_nodes_tensor
         

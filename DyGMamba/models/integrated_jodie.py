@@ -3,17 +3,31 @@ Integrated JODIE (Joint Dynamic User-Item Embeddings) Implementation
 Follows Integrated MPGNN approach where enhanced features are computed BEFORE message passing
 Memory-based model with user-item dynamics
 """
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from typing import Optional, Tuple, Dict, Any
-
-from .integrated_mpgnn_backbone import IntegratedMPGNNBackbone
-from .modules import TimeEncoder
-from .MemoryModel import MemoryModel
-from ..utils.utils import NeighborSampler
+import os
+import sys
+try:
+    from models.integrated_mpgnn_backbone import IntegratedMPGNNBackbone
+    from models.modules import TimeEncoder
+    from models.MemoryModel import MemoryModel
+    from utils.utils import NeighborSampler
+except Exception:
+    # Fallback when importing as a plain script without package context
+    _here = os.path.dirname(os.path.abspath(__file__))
+    _root = os.path.dirname(_here)  # project root: DyGMamba/
+    if _root not in sys.path:
+        sys.path.append(_root)
+    try:
+        from integrated_mpgnn_backbone import IntegratedMPGNNBackbone
+        from modules import TimeEncoder
+        from MemoryModel import MemoryModel
+        from utils.utils import NeighborSampler
+    except Exception as e:
+        raise ImportError(f"Failed to import IntegratedJODIE dependencies: {e}") from e
 
 
 class IntegratedJODIELayer(nn.Module):
@@ -140,24 +154,14 @@ class IntegratedJODIELayer(nn.Module):
         user_t_batch = self.t_batch_projection(torch.cat([projected_user_memory, time_embeddings], dim=1))
         item_t_batch = self.t_batch_projection(torch.cat([projected_item_memory, time_embeddings], dim=1))
 
-        # Adapt to memory bank dim if needed
-        target_mem_dim = self.memory_bank.memory_bank.memory_dim if hasattr(self.memory_bank, 'memory_bank') else self.memory_bank.memory_dim
-        if user_t_batch.size(1) != target_mem_dim:
-            if not hasattr(self, 'memory_dim_adapter') or self.memory_dim_adapter.out_features != target_mem_dim:
-                self.memory_dim_adapter = nn.Linear(user_t_batch.size(1), target_mem_dim).to(self.device)
-            user_t_batch_adapted = self.memory_dim_adapter(user_t_batch)
-            item_t_batch_adapted = self.memory_dim_adapter(item_t_batch)
-        else:
-            user_t_batch_adapted = user_t_batch
-            item_t_batch_adapted = item_t_batch
-
-        # Persist new memories
-        self.memory_bank.update_memory(src_node_ids, user_t_batch_adapted)
-        self.memory_bank.update_memory(dst_node_ids, item_t_batch_adapted)
+        # No dimension adaptation needed since memory_dim = enhanced_dim = 308
+        # Persist new memories directly
+        self.memory_bank.update_memory(src_node_ids, user_t_batch)
+        self.memory_bank.update_memory(dst_node_ids, item_t_batch)
 
         # Fuse memory and original enhanced features
-        src_combined = torch.cat([user_t_batch_adapted, src_node_original], dim=1)
-        dst_combined = torch.cat([item_t_batch_adapted, dst_node_original], dim=1)
+        src_combined = torch.cat([user_t_batch, src_node_original], dim=1)
+        dst_combined = torch.cat([item_t_batch, dst_node_original], dim=1)
 
         expected_in_dim = src_combined.size(1)
         if self.output_proj.in_features != expected_in_dim:
@@ -186,21 +190,20 @@ class IntegratedJODIE(IntegratedMPGNNBackbone):
         self.num_neighbors = config.get('num_neighbors', 20)
         self.dropout = config.get('dropout', 0.1)
         
-        # Create MemoryModel with REAL features (not dummy)
-        # Convert tensors back to numpy for MemoryModel (it expects numpy arrays)
-        if isinstance(node_raw_features, torch.Tensor):
-            node_np = node_raw_features.cpu().numpy()
-        else:
-            node_np = node_raw_features
-            
-        if isinstance(edge_raw_features, torch.Tensor):
-            edge_np = edge_raw_features.cpu().numpy()
-        else:
-            edge_np = edge_raw_features
+        # Get dimensions FIRST for enhanced memory initialization
+        total_enhanced_dim = self.enhanced_feature_manager.get_total_feature_dim()
+        
+        # Create MemoryModel with ENHANCED feature dimensions (like TGN)
+        # SOLUTION: Use enhanced feature dimension as memory dimension to preserve all information
+        # This avoids compression: enhanced[308] → memory[308] instead of enhanced[308] → memory[16]
+        
+        # Create dummy features with ENHANCED dimensions for proper memory initialization
+        dummy_enhanced_features = np.zeros((100, total_enhanced_dim), dtype=np.float32)
+        dummy_edge_features = np.zeros((100, edge_raw_features.shape[1]), dtype=np.float32)
         
         self.memory_bank = MemoryModel(
-            node_raw_features=node_np,
-            edge_raw_features=edge_np,
+            node_raw_features=dummy_enhanced_features,  # Use enhanced_dim, not raw node_feat_dim
+            edge_raw_features=dummy_edge_features,
             neighbor_sampler=neighbor_sampler,
             time_feat_dim=self.time_feat_dim,
             model_name='JODIE',
@@ -210,22 +213,22 @@ class IntegratedJODIE(IntegratedMPGNNBackbone):
             device=self.device
         )
         
-        # Get dimensions after enhanced feature computation
-        total_enhanced_dim = self.enhanced_feature_manager.get_total_feature_dim()
+        # Now memory_dim = enhanced_dim = 308, preserving all enhanced information
+        actual_memory_dim = self.memory_bank.memory_dim  # Should be 308
         
-        # JODIE layer with enhanced features and REAL memory bank
+        # JODIE layer with enhanced features and enhanced-dimension memory bank
         self.jodie_layer = IntegratedJODIELayer(
             node_feat_dim=total_enhanced_dim,
             edge_feat_dim=edge_raw_features.shape[1],
-            memory_dim=self.memory_dim,
+            memory_dim=actual_memory_dim,    # Now 308 (enhanced_dim), not 100
             time_feat_dim=self.time_feat_dim,
             memory_bank=self.memory_bank,
             num_neighbors=self.num_neighbors,
             dropout=self.dropout,
             device=self.device
         )
-        # Output projection (maps memory_dim to requested node feature dim if needed)
-        self.output_layer = nn.Linear(self.memory_dim, config.get('node_feat_dim', self.memory_dim))
+        # Output projection - from enhanced memory_dim to raw node_feat_dim
+        self.output_layer = nn.Linear(actual_memory_dim, config.get('node_feat_dim', node_raw_features.shape[1]))
 
     # --- Implement required abstract hooks ---
     def _init_model_specific_layers(self):  # Called by base before our __init__ body completes

@@ -89,14 +89,111 @@ def load_data(config, logger):
 def create_model(config, node_raw_features, edge_raw_features, neighbor_sampler, logger):
     """Create backbone + link predictor model based on config.model_name."""
     model_name = getattr(config, 'model_name', 'DyGMamba_CCASF')
+    fusion_strategy = getattr(config, 'fusion_strategy', getattr(config, 'fusion_method', 'clifford'))
+    use_integrated = getattr(config, 'use_integrated_mpgnn', True)  # Enable integrated approach by default
+    force_sequential = getattr(config, 'use_sequential_fallback', False)  # Force sequential if requested
+    
+    # Override integrated if sequential is explicitly requested
+    if force_sequential:
+        use_integrated = False
+        logger.info("🔄 Sequential approach explicitly requested via --use_sequential_fallback")
+    
+    logger.info(f"Creating model: {model_name}")
+    logger.info(f"Fusion strategy: {fusion_strategy}")
+    logger.info(f"Use integrated MPGNN: {use_integrated}")
+    
+    # 🧠 INTEGRATED MPGNN APPROACH (Enhanced features BEFORE message passing) - DEFAULT THEORETICAL PATH
+    if use_integrated and model_name in ['DyGMamba', 'TGAT', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer', 'TGN', 'DyRep', 'JODIE']:
+        logger.info("🧠 Using INTEGRATED MPGNN approach (theoretical compliance - DEFAULT)")
+        
+        try:
+            from models.integrated_model_factory import IntegratedModelFactory
+            
+            # Create integrated configuration
+            integrated_config = {
+                'device': config.device,
+                'fusion_strategy': fusion_strategy,
+                # 🎛️ FLEXIBLE EMBEDDING CONFIGURATION
+                'embedding_mode': getattr(config, 'embedding_mode', 'none'),
+                'enable_base_embedding': getattr(config, 'enable_base_embedding', False),
+                'spatial_dim': getattr(config, 'spatial_dim', 32),
+                'temporal_dim': getattr(config, 'temporal_dim', 32),
+                'channel_embedding_dim': getattr(config, 'channel_embedding_dim', 64),
+                'ccasf_output_dim': getattr(config, 'ccasf_output_dim', 64),
+                'time_feat_dim': getattr(config, 'time_feat_dim', 100),
+                'node_feat_dim': getattr(config, 'node_feat_dim', 100),
+                'num_neighbors': getattr(config, 'num_neighbors', 20),
+                'num_layers': getattr(config, 'num_layers', 2),
+                'num_heads': getattr(config, 'num_heads', 4),
+                'dropout': getattr(config, 'dropout', 0.1),
+                'memory_dim': getattr(config, 'memory_dim', 100),
+                'message_dim': getattr(config, 'message_dim', 100),
+                'aggregator_type': getattr(config, 'aggregator_type', 'last'),
+                'memory_updater_type': getattr(config, 'memory_updater_type', 'gru'),
+                'num_walk_heads': getattr(config, 'num_walk_heads', 8),
+                'walk_length': getattr(config, 'walk_length', 1),
+                'position_feat_dim': getattr(config, 'position_feat_dim', 64),
+                'num_depths': getattr(config, 'num_depths', 1),
+            }
+            
+            # Create integrated model
+            backbone = IntegratedModelFactory.create_integrated_model(
+                model_name=model_name,
+                config=integrated_config,
+                node_raw_features=node_raw_features,
+                edge_raw_features=edge_raw_features,
+                neighbor_sampler=neighbor_sampler
+            )
+            
+            # Get output dimension
+            in_dim = integrated_config['node_feat_dim']
+            
+            # Create link predictor
+            link_predictor = MergeLayer(input_dim1=in_dim, input_dim2=in_dim, hidden_dim=in_dim, output_dim=1)
+            model = nn.Sequential(backbone, link_predictor)
+            
+            total_params = get_parameter_sizes(model)
+            logger.info(f"✅ Integrated {model_name} created with {total_params} parameters")
+            logger.info(f"   Embedding mode: {getattr(config, 'embedding_mode', 'none')}")
+            logger.info(f"   Base embedding: {'Enabled' if getattr(config, 'enable_base_embedding', False) else 'Disabled'}")
+            logger.info(f"   Enhanced feature dim: {backbone.enhanced_feature_manager.get_total_feature_dim()}")
+            logger.info(f"   Fusion strategy: {fusion_strategy}")
+            logger.info(f"   Theoretical compliance: MPGNN ✓")
+            
+            return model
+            
+        except ImportError as e:
+            logger.error(f"❌ ImportError in integrated model creation: {e}")
+            logger.error("   This suggests missing dependencies for theoretical approach")
+            if not force_sequential:
+                logger.info("   Falling back to sequential approach...")
+                use_integrated = False
+            else:
+                raise e
+        except Exception as e:
+            logger.error(f"❌ Error in integrated model creation: {e}")
+            logger.error("   Theoretical approach failed unexpectedly")
+            if not force_sequential:
+                logger.info("   Falling back to sequential approach...")
+                use_integrated = False
+            else:
+                raise e
+    
+    # 🔄 SEQUENTIAL APPROACH (Legacy implementation - only if integrated fails or explicitly requested)
+    if not use_integrated:
+        logger.warning("⚠️  Using SEQUENTIAL approach (NON-THEORETICAL)")
+        logger.warning("   Enhanced features computed AFTER message passing")
+        logger.warning("   This does not follow MPGNN theoretical principles")
+        if force_sequential:
+            logger.info("   Sequential approach explicitly requested via --use_sequential_fallback")
+        else:
+            logger.info("   Sequential approach due to integrated approach failure")
+    
     model_config = config.get_model_config()
 
     if model_name == 'DyGMamba_CCASF':
         logger.info("Creating model: DyGMamba_CCASF")
         ccasf_config = config.get_ccasf_config()
-        
-        # Extract fusion strategy from config
-        fusion_strategy = getattr(config, 'fusion_strategy', getattr(config, 'fusion_method', 'clifford'))
         
         try:
             backbone = DyGMamba_CCASF(
@@ -417,7 +514,7 @@ def train_epoch(model, train_data, train_idx_data_loader, train_neg_sampler, opt
     total_loss = 0.0
     num_batches = 0
 
-    for batch_idx, indices in enumerate(tqdm(train_idx_data_loader, ncols=120)):
+    for batch_idx, indices in enumerate(tqdm(train_idx_data_loader, desc="Training", ncols=100, leave=False, dynamic_ncols=True)):
         optimizer.zero_grad()
 
         idx = indices.numpy()
@@ -946,6 +1043,17 @@ def main():
                       help='Negative edge sampling strategy for train/eval')
     parser.add_argument('--num_epochs', type=int, default=3, help='Number of epochs')
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
+    parser.add_argument('--load_best_configs', action='store_true', default=False, 
+                      help='Load best model configurations from utils.load_configs')
+    
+    # 🎛️ FLEXIBLE EMBEDDING CONFIGURATION ARGUMENTS
+    parser.add_argument('--embedding_mode', type=str, default=None,
+                      choices=['none', 'spatial_only', 'temporal_only', 'spatiotemporal_only', 'spatial_temporal', 'all'],
+                      help='Embedding mode for integrated MPGNN approach')
+    parser.add_argument('--enable_base_embedding', action='store_true',
+                      help='Enable base learnable embeddings (default: disabled)')
+    parser.add_argument('--use_integrated_mpgnn', action='store_true',
+                      help='Use integrated MPGNN approach instead of sequential wrappers')
     
     args = parser.parse_args()
     
@@ -964,11 +1072,41 @@ def main():
     config.negative_sample_strategy = args.negative_sample_strategy
     config.model_name = args.model_name
     
-    # Create directories
+    # 🎛️ Override embedding configuration if specified
+    if args.embedding_mode is not None:
+        config.embedding_mode = args.embedding_mode
+    if args.enable_base_embedding:
+        config.enable_base_embedding = True
+    if args.use_integrated_mpgnn:
+        config.use_integrated_mpgnn = True
+    
+    # Create directories and setup logging first
     config.create_directories()
+    logger = setup_logging(config)
+    
+    # 🔧 Load best configurations if requested
+    if args.load_best_configs:
+        logger.info("Loading best configurations from utils.load_configs...")
+        from utils.load_configs import load_link_prediction_best_configs
+        # Create a temporary args object for load_link_prediction_best_configs
+        temp_args = argparse.Namespace()
+        temp_args.model_name = config.model_name
+        temp_args.dataset_name = config.dataset_name
+        load_link_prediction_best_configs(temp_args)
+        
+        # Update config with best configurations
+        config.num_neighbors = getattr(temp_args, 'num_neighbors', config.num_neighbors)
+        config.num_layers = getattr(temp_args, 'num_layers', config.num_layers)
+        config.dropout = getattr(temp_args, 'dropout', config.dropout)
+        config.sample_neighbor_strategy = getattr(temp_args, 'sample_neighbor_strategy', config.sample_neighbor_strategy)
+        config.time_scaling_factor = getattr(temp_args, 'time_scaling_factor', config.time_scaling_factor)
+        config.max_input_sequence_length = getattr(temp_args, 'max_input_sequence_length', config.max_input_sequence_length)
+        config.patch_size = getattr(temp_args, 'patch_size', config.patch_size)
+        config.max_interaction_times = getattr(temp_args, 'max_interaction_times', config.max_interaction_times)
+        
+        logger.info(f"Best configs loaded - neighbors: {config.num_neighbors}, layers: {config.num_layers}, dropout: {config.dropout}")
     
     # Setup logging
-    logger = setup_logging(config)
     logger.info(f"Starting experiment: {args.experiment_type} on {args.dataset_name}")
     logger.info(f"Device: {config.device}")
     

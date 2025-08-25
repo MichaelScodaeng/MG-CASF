@@ -23,6 +23,11 @@ class CCASFConfig:
         # Model architecture
         self.model_name = 'DyGMamba_CCASF'
         self.use_ccasf = True
+        self.use_integrated_mpgnn = True  # Enable integrated MPGNN approach
+        
+        # 🎛️ FLEXIBLE EMBEDDING CONFIGURATION
+        self.embedding_mode = 'none'  # 'none', 'spatial_only', 'temporal_only', 'spatiotemporal_only', 'spatial_temporal', 'all'
+        self.enable_base_embedding = False  # Enable/disable base learnable embeddings (default: disabled)
         
         # C-CASF specific parameters
         self.spatial_dim = 64
@@ -453,7 +458,9 @@ EXPERIMENT_CONFIGS = {
     'baseline_original': {
         'use_ccasf': False,
         'use_rpearl': False,
-        'use_enhanced_lete': False
+        'use_enhanced_lete': False,
+        'embedding_mode': 'none',
+        'enable_base_embedding': False
     },
     'ablation_spatial': {
         'use_ccasf': True,
@@ -469,6 +476,64 @@ EXPERIMENT_CONFIGS = {
         'use_enhanced_lete': True,
         'spatial_dim': 32,
         'temporal_dim': 64,
+        'fusion_method': 'clifford'
+    },
+    
+    # 🎛️ FLEXIBLE EMBEDDING MODE EXPERIMENTS
+    'integrated_none': {
+        'use_integrated_mpgnn': True,
+        'embedding_mode': 'none',
+        'enable_base_embedding': False,
+        'fusion_method': 'clifford'
+    },
+    'integrated_spatial_only': {
+        'use_integrated_mpgnn': True,
+        'embedding_mode': 'spatial_only',
+        'enable_base_embedding': False,
+        'spatial_dim': 64,
+        'fusion_method': 'clifford'
+    },
+    'integrated_temporal_only': {
+        'use_integrated_mpgnn': True,
+        'embedding_mode': 'temporal_only',
+        'enable_base_embedding': False,
+        'temporal_dim': 64,
+        'fusion_method': 'clifford'
+    },
+    'integrated_spatiotemporal_only': {
+        'use_integrated_mpgnn': True,
+        'embedding_mode': 'spatiotemporal_only',
+        'enable_base_embedding': False,
+        'spatial_dim': 64,
+        'temporal_dim': 64,
+        'ccasf_output_dim': 128,
+        'fusion_method': 'clifford'
+    },
+    'integrated_spatial_temporal': {
+        'use_integrated_mpgnn': True,
+        'embedding_mode': 'spatial_temporal',
+        'enable_base_embedding': False,
+        'spatial_dim': 64,
+        'temporal_dim': 64,
+        'fusion_method': 'clifford'
+    },
+    'integrated_all': {
+        'use_integrated_mpgnn': True,
+        'embedding_mode': 'all',
+        'enable_base_embedding': False,
+        'spatial_dim': 64,
+        'temporal_dim': 64,
+        'ccasf_output_dim': 128,
+        'fusion_method': 'clifford'
+    },
+    'integrated_with_base': {
+        'use_integrated_mpgnn': True,
+        'embedding_mode': 'all',
+        'enable_base_embedding': True,
+        'channel_embedding_dim': 100,
+        'spatial_dim': 64,
+        'temporal_dim': 64,
+        'ccasf_output_dim': 128,
         'fusion_method': 'clifford'
     }
 }

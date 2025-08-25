@@ -3,12 +3,15 @@
     "model_name": "DyGMamba",
     "fusion_method": "clifford",
     "dataset": "wikipedia",
-    "experiment_type": "baseline_original",
+    "experiment_type": "ccasf_clifford",
     "num_runs": 1,
     "config": {
       "dataset_name": "wikipedia",
       "model_name": "DyGMamba",
-      "use_ccasf": false,
+      "use_ccasf": true,
+      "use_integrated_mpgnn": true,
+      "embedding_mode": "spatiotemporal_only",
+      "enable_base_embedding": false,
       "spatial_dim": 64,
       "temporal_dim": 64,
       "ccasf_output_dim": 128,
@@ -28,8 +31,8 @@
       "mlp_hidden_dim": null,
       "mlp_num_layers": 2,
       "cross_attn_heads": 8,
-      "use_rpearl": false,
-      "use_enhanced_lete": false,
+      "use_rpearl": true,
+      "use_enhanced_lete": true,
       "rpearl_k": 16,
       "rpearl_mlp_layers": 2,
       "rpearl_hidden": 64,
@@ -38,17 +41,17 @@
       "lete_scale": true,
       "time_feat_dim": 100,
       "channel_embedding_dim": 100,
-      "patch_size": 1,
+      "patch_size": 2,
       "num_layers": 2,
       "num_heads": 2,
       "dropout": 0.1,
       "gamma": 0.5,
-      "max_input_sequence_length": 32,
-      "max_interaction_times": 5,
+      "max_input_sequence_length": 64,
+      "max_interaction_times": 10,
       "learning_rate": 0.0001,
       "weight_decay": 0.01,
       "patience": 20,
-      "num_epochs": 100,
+      "num_epochs": 5,
       "batch_size": 200,
       "eval_batch_size": 200,
       "test_batch_size": 200,
@@ -60,7 +63,7 @@
       "load_best_configs": false,
       "device": "cuda",
       "num_workers": 8,
-      "seed": 42,
+      "seed": 0,
       "data_root": "/home/s2516027/GLCE/processed_data",
       "output_root": "/home/s2516027/GLCE/results",
       "checkpoint_dir": "/home/s2516027/GLCE/checkpoints",
@@ -72,90 +75,90 @@
   },
   "aggregated_metrics": {
     "train_auc": {
-      "mean": 0.9889482682619647,
+      "mean": 0.9835318639798489,
       "std": 0.0,
       "all_values": [
-        0.9889482682619647
+        0.9835318639798489
       ]
     },
     "train_ap": {
-      "mean": 0.9894088326708453,
+      "mean": 0.9851233078953081,
       "std": 0.0,
       "all_values": [
-        0.9894088326708453
+        0.9851233078953081
       ]
     },
     "val_auc": {
-      "mean": 0.9911339483412414,
+      "mean": 0.9861096836353589,
       "std": 0.0,
       "all_values": [
-        0.9911339483412414
+        0.9861096836353589
       ]
     },
     "val_ap": {
-      "mean": 0.9916771161879224,
+      "mean": 0.9872144636731498,
       "std": 0.0,
       "all_values": [
-        0.9916771161879224
+        0.9872144636731498
       ]
     },
     "test_auc": {
-      "mean": 0.9887603565235615,
+      "mean": 0.9821409373273119,
       "std": 0.0,
       "all_values": [
-        0.9887603565235615
+        0.9821409373273119
       ]
     },
     "test_ap": {
-      "mean": 0.9897546001527268,
+      "mean": 0.9845473756153067,
       "std": 0.0,
       "all_values": [
-        0.9897546001527268
+        0.9845473756153067
       ]
     },
     "new_val_auc": {
-      "mean": 0.9878642228220119,
+      "mean": 0.9809309397684747,
       "std": 0.0,
       "all_values": [
-        0.9878642228220119
+        0.9809309397684747
       ]
     },
     "new_val_ap": {
-      "mean": 0.987996744666638,
+      "mean": 0.9829272029810286,
       "std": 0.0,
       "all_values": [
-        0.987996744666638
+        0.9829272029810286
       ]
     },
     "new_test_auc": {
-      "mean": 0.9835954775022957,
+      "mean": 0.9734113990443728,
       "std": 0.0,
       "all_values": [
-        0.9835954775022957
+        0.9734113990443728
       ]
     },
     "new_test_ap": {
-      "mean": 0.9847214035481044,
+      "mean": 0.9768741743444376,
       "std": 0.0,
       "all_values": [
-        0.9847214035481044
+        0.9768741743444376
       ]
     }
   },
   "all_runs": [
     {
-      "train_auc": 0.9889482682619647,
-      "train_ap": 0.9894088326708453,
-      "val_auc": 0.9911339483412414,
-      "val_ap": 0.9916771161879224,
-      "test_auc": 0.9887603565235615,
-      "test_ap": 0.9897546001527268,
-      "new_val_auc": 0.9878642228220119,
-      "new_val_ap": 0.987996744666638,
-      "new_test_auc": 0.9835954775022957,
-      "new_test_ap": 0.9847214035481044,
+      "train_auc": 0.9835318639798489,
+      "train_ap": 0.9851233078953081,
+      "val_auc": 0.9861096836353589,
+      "val_ap": 0.9872144636731498,
+      "test_auc": 0.9821409373273119,
+      "test_ap": 0.9845473756153067,
+      "new_val_auc": 0.9809309397684747,
+      "new_val_ap": 0.9829272029810286,
+      "new_test_auc": 0.9734113990443728,
+      "new_test_ap": 0.9768741743444376,
       "negative_sample_strategy": "random",
-      "training_time": 7006.639300584793,
+      "training_time": 387.9501602649689,
       "run": 0,
       "model_name": "DyGMamba",
       "fusion_method": "clifford"

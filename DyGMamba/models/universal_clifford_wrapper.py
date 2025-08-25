@@ -10,18 +10,18 @@ import torch.nn as nn
 import numpy as np
 from typing import Dict, Any, Optional
 
-from models.clifford_infrastructure import (
+from .clifford_infrastructure import (
     FullCliffordInfrastructure,
     CliffordAdaptiveGraphAttention,
     UnifiedSpacetimeEmbeddings,
     CliffordMultivector,
     CliffordOperations
 )
-from models.CCASF import CliffordSpatiotemporalFusion
+from .CCASF import CliffordSpatiotemporalFusion
 from models.lete_adapter import EnhancedLeTE_Adapter
 from models.rpearl_adapter import RPEARLAdapter, SimpleGraphSpatialEncoder
 from models.modules import TimeEncoder
-from utils.utils import NeighborSampler
+from ..utils.utils import NeighborSampler
 
 
 class UniversalCliffordWrapper(nn.Module):

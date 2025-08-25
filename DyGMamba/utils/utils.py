@@ -5,7 +5,8 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from utils.DataLoader import Data
+# Use relative import within package
+from .DataLoader import Data
 
 
 

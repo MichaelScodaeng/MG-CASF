@@ -97,51 +97,175 @@ if __name__ == "__main__":
 
         logger.info(f'configuration is {args}')
 
-        # create model
-        if args.model_name == 'TGAT':
-            dynamic_backbone = TGAT(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
-                                    time_feat_dim=args.time_feat_dim, num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout, device=args.device)
-        elif args.model_name in ['JODIE', 'DyRep', 'TGN']:
-            # four floats that represent the mean and standard deviation of source and destination node time shifts in the training data, which is used for JODIE
-            src_node_mean_time_shift, src_node_std_time_shift, dst_node_mean_time_shift_dst, dst_node_std_time_shift = \
-                compute_src_dst_node_time_shifts(train_data.src_node_ids, train_data.dst_node_ids, train_data.node_interact_times)
-            dynamic_backbone = MemoryModel(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
-                                           time_feat_dim=args.time_feat_dim, model_name=args.model_name, num_layers=args.num_layers, num_heads=args.num_heads,
-                                           dropout=args.dropout, src_node_mean_time_shift=src_node_mean_time_shift, src_node_std_time_shift=src_node_std_time_shift,
-                                           dst_node_mean_time_shift_dst=dst_node_mean_time_shift_dst, dst_node_std_time_shift=dst_node_std_time_shift, device=args.device)
-        elif args.model_name == 'CAWN':
-            dynamic_backbone = CAWN(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
-                                    time_feat_dim=args.time_feat_dim, position_feat_dim=args.position_feat_dim, walk_length=args.walk_length,
-                                    num_walk_heads=args.num_walk_heads, dropout=args.dropout, device=args.device)
-        elif args.model_name == 'TCL':
-            dynamic_backbone = TCL(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
-                                   time_feat_dim=args.time_feat_dim, num_layers=args.num_layers, num_heads=args.num_heads,
-                                   num_depths=args.num_neighbors + 1, dropout=args.dropout, device=args.device)
-        elif args.model_name == 'GraphMixer':
-            dynamic_backbone = GraphMixer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
-                                          time_feat_dim=args.time_feat_dim, num_tokens=args.num_neighbors, num_layers=args.num_layers, dropout=args.dropout, device=args.device)
+        # 🧠 THEORETICAL APPROACH: Integrated MPGNN (Enhanced features BEFORE message passing)
+        use_integrated = getattr(args, 'use_integrated_mpgnn', True) and not getattr(args, 'use_sequential_fallback', False)
+        fusion_strategy = getattr(args, 'fusion_strategy', 'use')
 
-        elif args.model_name == 'DyGMamba':
-            dynamic_backbone = DyGMamba(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
-                                         time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
-                                         num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,gamma=args.gamma,
-                                         max_input_sequence_length=args.max_input_sequence_length, max_interaction_times=args.max_interaction_times,device=args.device)
+        # Support alias model names beginning with 'Integrated' (e.g., IntegratedDyGMamba)
+        backbone_model_name = args.model_name
+        if backbone_model_name.startswith('Integrated'):
+            # Strip leading 'Integrated' to get the actual backbone name
+            stripped = backbone_model_name[len('Integrated'):]
+            # Maintain compatibility for names like IntegratedDyGMamba -> DyGMamba
+            if stripped in ['DyGMamba', 'TGAT', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer', 'TGN', 'DyRep', 'JODIE']:
+                backbone_model_name = stripped
+            # If stripping produced something like 'Model', keep original to avoid confusion
+        
+        # Initialize dynamic_backbone to None to ensure it's always defined
+        dynamic_backbone = None
+        
+        if use_integrated and backbone_model_name in ['DyGMamba', 'TGAT', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer', 'TGN', 'DyRep', 'JODIE']:
+            logger.info("🧠 Using INTEGRATED MPGNN approach (theoretical compliance)")
+            
+            try:
+                from models.integrated_model_factory import IntegratedModelFactory
+                
+                # Create integrated configuration
+                integrated_config = {
+                    'device': args.device,
+                    'fusion_strategy': fusion_strategy,
+                    'embedding_mode': getattr(args, 'embedding_mode', 'none'),
+                    'enable_base_embedding': getattr(args, 'enable_base_embedding', False),
+                    'spatial_dim': getattr(args, 'spatial_dim', 64),
+                    'temporal_dim': getattr(args, 'temporal_dim', 64),
+                    'channel_embedding_dim': getattr(args, 'channel_embedding_dim', 50),
+                    'ccasf_output_dim': getattr(args, 'ccasf_output_dim', 128),
+                    'time_feat_dim': getattr(args, 'time_feat_dim', 100),
+                    'node_feat_dim': node_raw_features.shape[1],
+                    'edge_feat_dim': edge_raw_features.shape[1],
+                    'num_neighbors': getattr(args, 'num_neighbors', 20),
+                    'num_layers': getattr(args, 'num_layers', 2),
+                    'num_heads': getattr(args, 'num_heads', 2),
+                    'dropout': getattr(args, 'dropout', 0.1),
+                    'memory_dim': getattr(args, 'memory_dim', 100),
+                    'message_dim': getattr(args, 'message_dim', 100),
+                    'aggregator_type': getattr(args, 'aggregator_type', 'last'),
+                    'memory_updater_type': getattr(args, 'memory_updater_type', 'gru'),
+                    'num_walk_heads': getattr(args, 'num_walk_heads', 8),
+                    'walk_length': getattr(args, 'walk_length', 1),
+                    'position_feat_dim': getattr(args, 'position_feat_dim', 172),
+                    'patch_size': getattr(args, 'patch_size', 1),
+                    'max_input_sequence_length': getattr(args, 'max_input_sequence_length', 32),
+                    'max_interaction_times': getattr(args, 'max_interaction_times', 10),
+                    'gamma': getattr(args, 'gamma', 0.5),
+                }
+                
+                # Handle memory model time shifts
+                if args.model_name in ['JODIE', 'DyRep', 'TGN']:
+                    from models.MemoryModel import compute_src_dst_node_time_shifts
+                    src_node_mean_time_shift, src_node_std_time_shift, dst_node_mean_time_shift_dst, dst_node_std_time_shift = \
+                        compute_src_dst_node_time_shifts(train_data.src_node_ids, train_data.dst_node_ids, train_data.node_interact_times)
+                    integrated_config.update({
+                        'src_node_mean_time_shift': src_node_mean_time_shift,
+                        'src_node_std_time_shift': src_node_std_time_shift,
+                        'dst_node_mean_time_shift_dst': dst_node_mean_time_shift_dst,
+                        'dst_node_std_time_shift': dst_node_std_time_shift,
+                    })
+                
+                # Create integrated model (convert numpy arrays to tensors)
+                node_features_tensor = torch.from_numpy(node_raw_features).float()
+                edge_features_tensor = torch.from_numpy(edge_raw_features).float()
+                
+                dynamic_backbone = IntegratedModelFactory.create_integrated_model(
+                    model_name=backbone_model_name,
+                    config=integrated_config,
+                    node_raw_features=node_features_tensor,
+                    edge_raw_features=edge_features_tensor,
+                    neighbor_sampler=train_neighbor_sampler
+                )
+                
+                logger.info(f"✅ Integrated {args.model_name} created successfully")
+                logger.info(f"   Embedding mode: {getattr(args, 'embedding_mode', 'none')}")
+                logger.info(f"   Base embedding: {'Enabled' if getattr(args, 'enable_base_embedding', False) else 'Disabled'}")
+                logger.info(f"   Fusion strategy: {fusion_strategy}")
+                logger.info(f"   Theoretical compliance: MPGNN ✓")
+                
+            except Exception as e:
+                import traceback
+                logger.warning(f"❌ Failed to create integrated model: {e}")
+                logger.warning(f"❌ Full traceback:")
+                for line in traceback.format_exc().splitlines():
+                    logger.warning(f"   {line}")
+                logger.info("🔄 Falling back to sequential approach...")
+                use_integrated = False
+                dynamic_backbone = None  # Ensure variable is defined
+        
+        # 🔄 SEQUENTIAL APPROACH (Original implementation - non-theoretical)
+        if not use_integrated:
+            if not getattr(args, 'use_sequential_fallback', False):
+                logger.warning("⚠️  Using SEQUENTIAL approach (non-theoretical fallback)")
+                logger.warning("⚠️  Enhanced features computed AFTER message passing")
+            else:
+                logger.info("🔄 Using SEQUENTIAL approach (explicitly requested)")
 
-        elif args.model_name == 'DyGFormer':
-            dynamic_backbone = DyGFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
-                                         time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
-                                         num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
-                                         max_input_sequence_length=args.max_input_sequence_length, device=args.device)
+            # create model
+            if backbone_model_name == 'TGAT':
+                dynamic_backbone = TGAT(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
+                                        time_feat_dim=args.time_feat_dim, num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout, device=args.device)
+                dynamic_backbone = TGAT(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
+                                        time_feat_dim=args.time_feat_dim, num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout, device=args.device)
+            elif backbone_model_name in ['JODIE', 'DyRep', 'TGN']:
+                # Compute time shift statistics for memory models
+                src_node_mean_time_shift, src_node_std_time_shift, dst_node_mean_time_shift_dst, dst_node_std_time_shift = \
+                    compute_src_dst_node_time_shifts(train_data.src_node_ids, train_data.dst_node_ids, train_data.node_interact_times)
+                dynamic_backbone = MemoryModel(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
+                                               time_feat_dim=args.time_feat_dim, model_name=args.model_name, num_layers=args.num_layers, num_heads=args.num_heads,
+                                               dropout=args.dropout, src_node_mean_time_shift=src_node_mean_time_shift, src_node_std_time_shift=src_node_std_time_shift,
+                                               dst_node_mean_time_shift_dst=dst_node_mean_time_shift_dst, dst_node_std_time_shift=dst_node_std_time_shift, device=args.device)
+            elif backbone_model_name == 'CAWN':
+                dynamic_backbone = CAWN(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
+                                        time_feat_dim=args.time_feat_dim, position_feat_dim=args.position_feat_dim, walk_length=args.walk_length,
+                                        num_walk_heads=args.num_walk_heads, dropout=args.dropout, device=args.device)
+            elif backbone_model_name == 'TCL':
+                dynamic_backbone = TCL(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
+                                       time_feat_dim=args.time_feat_dim, num_layers=args.num_layers, num_heads=args.num_heads,
+                                       num_depths=args.num_neighbors + 1, dropout=args.dropout, device=args.device)
+            elif backbone_model_name == 'GraphMixer':
+                dynamic_backbone = GraphMixer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
+                                              time_feat_dim=args.time_feat_dim, num_tokens=args.num_neighbors, num_layers=args.num_layers, dropout=args.dropout, device=args.device)
+            elif backbone_model_name == 'DyGMamba':
+                dynamic_backbone = DyGMamba(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
+                                             time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
+                                             num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout, gamma=args.gamma,
+                                             max_input_sequence_length=args.max_input_sequence_length, max_interaction_times=args.max_interaction_times, device=args.device)
+            elif backbone_model_name == 'DyGFormer':
+                dynamic_backbone = DyGFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
+                                             time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
+                                             num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
+                                             max_input_sequence_length=args.max_input_sequence_length, device=args.device)
+            else:
+                raise ValueError(f"Wrong value for model_name {args.model_name}! (resolved backbone name: {backbone_model_name})")
+        # Create link predictor
+        if use_integrated and dynamic_backbone is not None:
+            # For integrated models, get the output dimension from the dynamic backbone
+            if hasattr(dynamic_backbone, 'enhanced_node_feat_dim'):
+                enhanced_dim = dynamic_backbone.enhanced_node_feat_dim
+            elif hasattr(dynamic_backbone, 'enhanced_feature_manager'):
+                enhanced_dim = dynamic_backbone.enhanced_feature_manager.get_total_feature_dim()
+            else:
+                enhanced_dim = getattr(dynamic_backbone, 'node_feat_dim', 172)
+                logger.warning(f"Could not determine enhanced feature dimension, using fallback: {enhanced_dim}")
+            logger.info(f"Using enhanced feature dimension for link predictor: {enhanced_dim}")
+            if backbone_model_name == 'DyGMamba':
+                link_predictor = MergeLayerTD(input_dim1=enhanced_dim, input_dim2=enhanced_dim, input_dim3=enhanced_dim,
+                                              hidden_dim=enhanced_dim, output_dim=1)
+            else:
+                link_predictor = MergeLayer(input_dim1=enhanced_dim, input_dim2=enhanced_dim,
+                                            hidden_dim=enhanced_dim, output_dim=1)
         else:
-            raise ValueError(f"Wrong value for model_name {args.model_name}!")
-
-        if args.model_name == 'DyGMamba':
-            link_predictor = MergeLayerTD(input_dim1=node_raw_features.shape[1], input_dim2=node_raw_features.shape[1], input_dim3=node_raw_features.shape[1],
-                                        hidden_dim=node_raw_features.shape[1], output_dim=1)
-        else:
-            link_predictor = MergeLayer(input_dim1=node_raw_features.shape[1], input_dim2=node_raw_features.shape[1],
-                                        hidden_dim=node_raw_features.shape[1], output_dim=1)
+            # Sequential / fallback models: use raw node feature dims
+            base_dim = node_raw_features.shape[1]
+            if backbone_model_name == 'DyGMamba':
+                link_predictor = MergeLayerTD(input_dim1=base_dim, input_dim2=base_dim, input_dim3=base_dim,
+                                              hidden_dim=base_dim, output_dim=1)
+            else:
+                link_predictor = MergeLayer(input_dim1=base_dim, input_dim2=base_dim,
+                                            hidden_dim=base_dim, output_dim=1)
         model = nn.Sequential(dynamic_backbone, link_predictor)
+        
+        # Log model information with approach indicator
+        approach_type = "🧠 INTEGRATED MPGNN (theoretical)" if use_integrated else "🔄 SEQUENTIAL (non-theoretical)"
+        logger.info(f'Model approach: {approach_type}')
         logger.info(f'model -> {model}')
         logger.info(f'model name: {args.model_name}, #parameters: {get_parameter_sizes(model) * 4} B, '
                     f'{get_parameter_sizes(model) * 4 / 1024} KB, {get_parameter_sizes(model) * 4 / 1024 / 1024} MB.')
@@ -162,16 +286,16 @@ if __name__ == "__main__":
         for epoch in range(args.num_epochs):
 
             model.train()
-            if args.model_name in ['DyRep', 'TGAT', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer', 'DyGMamba']:
+            if backbone_model_name in ['DyRep', 'TGAT', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer', 'DyGMamba']:
                 # training, only use training graph
                 model[0].set_neighbor_sampler(train_neighbor_sampler)
-            if args.model_name in ['JODIE', 'DyRep', 'TGN']:
+            if backbone_model_name in ['JODIE', 'DyRep', 'TGN']:
                 # reinitialize memory of memory-based models at the start of each epoch
                 model[0].memory_bank.__init_memory_bank__()
 
             # store train losses and metrics
             train_losses, train_metrics = [], []
-            train_idx_data_loader_tqdm = tqdm(train_idx_data_loader, ncols=120)
+            train_idx_data_loader_tqdm = tqdm(train_idx_data_loader, desc="Training", ncols=100, leave=False, dynamic_ncols=True)
             for batch_idx, train_data_indices in enumerate(train_idx_data_loader_tqdm):
 
                 train_data_indices = train_data_indices.numpy()
@@ -184,7 +308,7 @@ if __name__ == "__main__":
 
                 # we need to compute for positive and negative edges respectively, because the new sampling strategy (for evaluation) allows the negative source nodes to be
                 # different from the source nodes, this is different from previous works that just replace destination nodes with negative destination nodes
-                if args.model_name in ['TGAT', 'CAWN', 'TCL']:
+                if backbone_model_name in ['TGAT', 'CAWN', 'TCL']:
                     # get temporal embedding of source and destination nodes
                     # two Tensors, with shape (batch_size, node_feat_dim)
                     batch_src_node_embeddings, batch_dst_node_embeddings = \
@@ -200,7 +324,7 @@ if __name__ == "__main__":
                                                                           dst_node_ids=batch_neg_dst_node_ids,
                                                                           node_interact_times=batch_node_interact_times,
                                                                           num_neighbors=args.num_neighbors)
-                elif args.model_name in ['JODIE', 'DyRep', 'TGN']:
+                elif backbone_model_name in ['JODIE', 'DyRep', 'TGN']:
                     # note that negative nodes do not change the memories while the positive nodes change the memories,
                     # we need to first compute the embeddings of negative nodes for memory-based models
                     # get temporal embedding of negative source and negative destination nodes
@@ -222,7 +346,7 @@ if __name__ == "__main__":
                                                                           edge_ids=batch_edge_ids,
                                                                           edges_are_positive=True,
                                                                           num_neighbors=args.num_neighbors)
-                elif args.model_name in ['GraphMixer']:
+                elif backbone_model_name in ['GraphMixer']:
                     # get temporal embedding of source and destination nodes
                     # two Tensors, with shape (batch_size, node_feat_dim)
                     batch_src_node_embeddings, batch_dst_node_embeddings = \
@@ -240,7 +364,7 @@ if __name__ == "__main__":
                                                                           node_interact_times=batch_node_interact_times,
                                                                           num_neighbors=args.num_neighbors,
                                                                           time_gap=args.time_gap)
-                elif args.model_name in ['DyGFormer']:
+                elif backbone_model_name in ['DyGFormer']:
                     # get temporal embedding of source and destination nodes
                     # two Tensors, with shape (batch_size, node_feat_dim)
                     batch_src_node_embeddings, batch_dst_node_embeddings = \
@@ -254,7 +378,7 @@ if __name__ == "__main__":
                         model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_neg_src_node_ids,
                                                                           dst_node_ids=batch_neg_dst_node_ids,
                                                                           node_interact_times=batch_node_interact_times)
-                elif args.model_name in ['DyGMamba']:
+                elif backbone_model_name in ['DyGMamba']:
                     # get temporal embedding of source , destination nodes and time difference
                     # three Tensors, with shape (batch_size, node_feat_dim)
 
@@ -270,9 +394,9 @@ if __name__ == "__main__":
                                                                           dst_node_ids=batch_neg_dst_node_ids,
                                                                           node_interact_times=batch_node_interact_times)
                 else:
-                    raise ValueError(f"Wrong value for model_name {args.model_name}!")
+                    raise ValueError(f"Wrong value for model_name {args.model_name}! (resolved backbone name: {backbone_model_name})")
 
-                if args.model_name in ['DyGMamba']:
+                if backbone_model_name in ['DyGMamba']:
                     positive_probabilities = model[1](input_1=batch_src_node_embeddings, input_2=batch_dst_node_embeddings, input_3=batch_time_diff_emb).squeeze(dim=-1).sigmoid()
                     negative_probabilities = model[1](input_1=batch_neg_src_node_embeddings, input_2=batch_neg_dst_node_embeddings, input_3=batch_neg_time_diff_emb).squeeze(dim=-1).sigmoid()
                 else:
@@ -289,6 +413,11 @@ if __name__ == "__main__":
 
                 optimizer.zero_grad()
                 loss.backward()
+                
+                # 🐛 Add gradient clipping to prevent gradient explosion with enhanced features
+                if use_integrated:
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                
                 optimizer.step()
                 
                 train_idx_data_loader_tqdm.set_description(f'Epoch: {epoch + 1}, train for the {batch_idx + 1}-th batch, train loss: {loss.item()}')

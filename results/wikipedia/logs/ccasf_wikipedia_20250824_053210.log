@@ -1,0 +1,111 @@
+2025-08-24 05:32:10,341 - INFO - Starting experiment: ccasf_clifford on wikipedia
+2025-08-24 05:32:10,341 - INFO - Device: cuda
+2025-08-24 05:32:10,342 - INFO - 
+==================================================
+2025-08-24 05:32:10,342 - INFO - Run 1/1 - DyGMamba with clifford
+2025-08-24 05:32:10,342 - INFO - ==================================================
+2025-08-24 05:32:10,434 - INFO - Starting training for wikipedia with C-CASF
+2025-08-24 05:32:10,434 - INFO - Configuration: {'dataset_name': 'wikipedia', 'model_name': 'DyGMamba', 'use_ccasf': True, 'use_integrated_mpgnn': True, 'embedding_mode': 'spatiotemporal_only', 'enable_base_embedding': False, 'spatial_dim': 64, 'temporal_dim': 64, 'ccasf_output_dim': 128, 'node_feat_dim': 172, 'edge_feat_dim': 172, 'fusion_strategy': 'clifford', 'fusion_method': 'clifford', 'clifford_dim': 4, 'clifford_signature': 'euclidean', 'clifford_fusion_mode': 'progressive', 'caga_num_heads': 8, 'caga_hidden_dim': 128, 'use_num_casm_layers': 3, 'use_num_smpn_layers': 3, 'use_hidden_dim': 128, 'weighted_fusion_learnable': True, 'mlp_hidden_dim': None, 'mlp_num_layers': 2, 'cross_attn_heads': 8, 'use_rpearl': True, 'use_enhanced_lete': True, 'rpearl_k': 16, 'rpearl_mlp_layers': 2, 'rpearl_hidden': 64, 'lete_p': 0.5, 'lete_layer_norm': True, 'lete_scale': True, 'time_feat_dim': 100, 'channel_embedding_dim': 100, 'patch_size': 2, 'num_layers': 2, 'num_heads': 2, 'dropout': 0.1, 'gamma': 0.5, 'max_input_sequence_length': 64, 'max_interaction_times': 10, 'learning_rate': 0.0001, 'weight_decay': 0.01, 'patience': 20, 'num_epochs': 5, 'batch_size': 200, 'eval_batch_size': 200, 'test_batch_size': 200, 'val_ratio': 0.15, 'test_ratio': 0.15, 'negative_sample_strategy': 'random', 'num_neighbors': 20, 'num_runs': 1, 'load_best_configs': False, 'device': 'cuda', 'num_workers': 8, 'seed': 0, 'data_root': '/home/s2516027/GLCE/processed_data', 'output_root': '/home/s2516027/GLCE/results', 'checkpoint_dir': '/home/s2516027/GLCE/checkpoints', 'log_every': 1, 'eval_every': 5, 'save_model': True, 'verbose': True}
+2025-08-24 05:32:10,435 - INFO - Loading wikipedia dataset...
+2025-08-24 05:32:11,393 - INFO - Number of nodes: 9228
+2025-08-24 05:32:11,394 - INFO - Number of edges: 157475
+2025-08-24 05:32:11,394 - INFO - Node feature dimension: 172
+2025-08-24 05:32:11,394 - INFO - Edge feature dimension: 172
+2025-08-24 05:32:11,394 - INFO - Training interactions: 79202
+2025-08-24 05:32:11,394 - INFO - Validation interactions: 23621
+2025-08-24 05:32:11,394 - INFO - Test interactions: 23621
+2025-08-24 05:32:11,394 - INFO - === DATASET STRUCTURE DEBUG ===
+2025-08-24 05:32:11,394 - INFO - Dataset: wikipedia
+2025-08-24 05:32:11,394 - INFO - Node features shape: (9228, 172)
+2025-08-24 05:32:11,394 - INFO - Edge features shape: (157475, 172)
+2025-08-24 05:32:11,394 - INFO - Full data interactions: 157474
+2025-08-24 05:32:11,394 - INFO - Train data interactions: 79202
+2025-08-24 05:32:11,394 - INFO - Val data interactions: 23621
+2025-08-24 05:32:11,394 - INFO - Test data interactions: 23621
+2025-08-24 05:32:11,394 - INFO - Unique nodes in full data: 9227
+2025-08-24 05:32:11,394 - INFO - Time range: 0.00 - 2678373.00
+2025-08-24 05:32:11,394 - INFO - Node ID range: 1 - 9227
+2025-08-24 05:32:11,395 - INFO - Sample interactions from train_data:
+2025-08-24 05:32:11,395 - INFO -   [0] src=2, dst=8229, time=36.00
+2025-08-24 05:32:11,395 - INFO -   [1] src=2, dst=8229, time=77.00
+2025-08-24 05:32:11,395 - INFO -   [2] src=2, dst=8229, time=150.00
+2025-08-24 05:32:11,395 - INFO -   [3] src=4, dst=8231, time=169.00
+2025-08-24 05:32:11,395 - INFO -   [4] src=2, dst=8229, time=217.00
+2025-08-24 05:32:11,395 - INFO - ==================================
+2025-08-24 05:32:11,930 - INFO - Creating model: DyGMamba
+2025-08-24 05:32:11,930 - INFO - Fusion strategy: clifford
+2025-08-24 05:32:11,930 - INFO - Use integrated MPGNN: True
+2025-08-24 05:32:11,930 - INFO - 🧠 Using INTEGRATED MPGNN approach (theoretical compliance)
+2025-08-24 05:32:11,956 - WARNING - Failed to create integrated model: 'int' object is not callable
+2025-08-24 05:32:11,956 - INFO - Falling back to sequential approach...
+2025-08-24 05:32:11,956 - INFO - Creating model: DyGMamba
+2025-08-24 05:32:12,688 - INFO - Model created with 1003092 parameters
+2025-08-24 05:32:12,801 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-24 05:32:12,801 - INFO - Batch size (config): 200
+2025-08-24 05:32:12,802 - INFO - Actual batch size: 200
+2025-08-24 05:32:12,802 - INFO - batch_src_nodes shape: (200,) | sample: [4315 1403  206  961  418]
+2025-08-24 05:32:12,802 - INFO - batch_dst_nodes shape: (200,) | sample: [9059 8252 9128 8622 8513]
+2025-08-24 05:32:12,802 - INFO - batch_timestamps shape: (200,) | sample: [1493228. 1044438. 1632413.  413069.  509614.]
+2025-08-24 05:32:12,802 - INFO - batch_edge_ids shape: (200,) | sample: [88236 59279 96939 19901 25503]
+2025-08-24 05:32:12,803 - INFO - Timestamp range: 7609.00 - 1831747.00
+2025-08-24 05:32:12,803 - INFO - Node ID range: src=[5-6238], dst=[8232-9167]
+2025-08-24 05:32:12,803 - INFO - ====================================
+2025-08-24 05:32:16,953 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-24 05:32:16,953 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-24 05:32:16,953 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-24 05:32:16,953 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-24 05:32:16,953 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-24 05:32:16,953 - INFO - ==================================
+2025-08-24 05:33:46,940 - INFO - save model /home/s2516027/GLCE/checkpoints/wikipedia/models/DyGMamba/DyGMamba_clifford_seed0.pkl
+2025-08-24 05:33:47,177 - INFO - Saved best model to /home/s2516027/GLCE/checkpoints/wikipedia/best_models/best_DyGMamba_clifford_wikipedia.pth
+2025-08-24 05:33:47,177 - INFO - Epoch   0/5 | Loss: 0.3925 | Time: 94.39s
+2025-08-24 05:33:47,187 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-24 05:33:47,187 - INFO - Batch size (config): 200
+2025-08-24 05:33:47,187 - INFO - Actual batch size: 200
+2025-08-24 05:33:47,188 - INFO - batch_src_nodes shape: (200,) | sample: [1608 2813  522  997  376]
+2025-08-24 05:33:47,188 - INFO - batch_dst_nodes shape: (200,) | sample: [8740 8940 8531 9164 8476]
+2025-08-24 05:33:47,188 - INFO - batch_timestamps shape: (200,) | sample: [ 773734. 1635489.  475951. 1761953.   53614.]
+2025-08-24 05:33:47,188 - INFO - batch_edge_ids shape: (200,) | sample: [ 42237  97201  23282 104521   1933]
+2025-08-24 05:33:47,188 - INFO - Timestamp range: 395.00 - 1861648.00
+2025-08-24 05:33:47,188 - INFO - Node ID range: src=[2-6481], dst=[8229-9167]
+2025-08-24 05:33:47,188 - INFO - ====================================
+2025-08-24 05:33:47,259 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-24 05:33:47,259 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-24 05:33:47,259 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-24 05:33:47,259 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-24 05:33:47,259 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-24 05:33:47,259 - INFO - ==================================
+2025-08-24 05:34:58,125 - INFO - Epoch   1/5 | Loss: 0.2261 | Time: 70.95s
+2025-08-24 05:34:58,129 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-24 05:34:58,129 - INFO - Batch size (config): 200
+2025-08-24 05:34:58,129 - INFO - Actual batch size: 200
+2025-08-24 05:34:58,129 - INFO - batch_src_nodes shape: (200,) | sample: [ 466   88  895  541 1140]
+2025-08-24 05:34:58,129 - INFO - batch_dst_nodes shape: (200,) | sample: [8510 8952 8662 8544 9009]
+2025-08-24 05:34:58,130 - INFO - batch_timestamps shape: (200,) | sample: [1213350.  883619.  496555.   86563. 1455282.]
+2025-08-24 05:34:58,130 - INFO - batch_edge_ids shape: (200,) | sample: [69446 48914 24645  3507 85043]
+2025-08-24 05:34:58,130 - INFO - Timestamp range: 29639.00 - 1860951.00
+2025-08-24 05:34:58,130 - INFO - Node ID range: src=[4-6439], dst=[8231-9163]
+2025-08-24 05:34:58,130 - INFO - ====================================
+2025-08-24 05:34:58,198 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-24 05:34:58,198 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-24 05:34:58,198 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-24 05:34:58,198 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-24 05:34:58,198 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-24 05:34:58,198 - INFO - ==================================
+2025-08-24 05:36:13,031 - INFO - Epoch   2/5 | Loss: 0.1682 | Time: 74.90s
+2025-08-24 05:36:13,035 - INFO - === BATCH INPUT SHAPES DEBUG ===
+2025-08-24 05:36:13,035 - INFO - Batch size (config): 200
+2025-08-24 05:36:13,035 - INFO - Actual batch size: 200
+2025-08-24 05:36:13,035 - INFO - batch_src_nodes shape: (200,) | sample: [1864 1807  616 6074 1203]
+2025-08-24 05:36:13,035 - INFO - batch_dst_nodes shape: (200,) | sample: [8757 8807 9140 9165 8350]
+2025-08-24 05:36:13,035 - INFO - batch_timestamps shape: (200,) | sample: [1360405. 1289162. 1526879. 1666788. 1558304.]
+2025-08-24 05:36:13,035 - INFO - batch_edge_ids shape: (200,) | sample: [78664 73983 90275 99041 92397]
+2025-08-24 05:36:13,035 - INFO - Timestamp range: 4774.00 - 1861648.00
+2025-08-24 05:36:13,035 - INFO - Node ID range: src=[5-6501], dst=[8232-9167]
+2025-08-24 05:36:13,035 - INFO - ====================================
+2025-08-24 05:36:13,103 - INFO - === MODEL OUTPUT SHAPES DEBUG ===
+2025-08-24 05:36:13,104 - INFO - src_embeddings shape: torch.Size([200, 172])
+2025-08-24 05:36:13,104 - INFO - dst_embeddings shape: torch.Size([200, 172])
+2025-08-24 05:36:13,104 - INFO - time_diff_emb shape: torch.Size([200, 172])
+2025-08-24 05:36:13,104 - INFO - Model type: <class 'models.DyGMamba.DyGMamba'>
+2025-08-24 05:36:13,104 - INFO - ==================================

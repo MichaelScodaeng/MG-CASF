@@ -15,7 +15,12 @@ def get_link_prediction_args(is_evaluation: bool = False):
                         choices=['wikipedia', 'reddit', 'mooc', 'lastfm', 'enron', 'SocialEvo', 'uci'])
     parser.add_argument('--batch_size', type=int, default=200, help='batch size')
     parser.add_argument('--model_name', type=str, default='DyGMamba', help='name of the model',
-                        choices=['JODIE', 'DyRep', 'TGAT', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer', 'DyGMamba'])
+                        choices=[
+                            'JODIE', 'DyRep', 'TGAT', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer', 'DyGMamba',
+                            # Integrated variants for theoretical MPGNN compliance
+                            'IntegratedTGAT', 'IntegratedTGN', 'IntegratedDyRep', 'IntegratedJODIE',
+                            'IntegratedCAWN', 'IntegratedTCL', 'IntegratedGraphMixer', 'IntegratedDyGFormer', 'IntegratedDyGMamba'
+                        ])
     parser.add_argument('--gpu', type=int, default=0, help='number of gpu to use')
     parser.add_argument('--num_neighbors', type=int, default=20, help='number of neighbors to sample for each node')
     parser.add_argument('--sample_neighbor_strategy', type=str, default='uniform', choices=['uniform', 'recent', 'time_interval_aware'], help='how to sample historical neighbors')
@@ -50,11 +55,92 @@ def get_link_prediction_args(is_evaluation: bool = False):
     parser.add_argument('--max_interaction_times', type=int, default=10,
                         help='max interactions for src and dst to consider')
     parser.add_argument('--load_best_configs', action='store_true', default=False, help='whether to load the best configurations')
+    
+    # Integrated MPGNN arguments
+    parser.add_argument('--fusion_strategy', type=str, default='use', 
+                        choices=['use', 'caga', 'clifford', 'full_clifford', 'weighted', 'concat_mlp', 'cross_attention', 'baseline_original'],
+                        help='fusion strategy for enhanced features')
+    parser.add_argument('--spatial_dim', type=int, default=64, help='dimension of spatial features')
+    parser.add_argument('--temporal_dim', type=int, default=64, help='dimension of temporal features')
+    parser.add_argument('--ccasf_output_dim', type=int, default=128, help='output dimension of CCASF fusion')
+    parser.add_argument('--use_integrated_mpgnn', action='store_true', default=True, 
+                        help='whether to use integrated MPGNN approach (theoretical default)')
+    parser.add_argument('--use_sequential_fallback', action='store_true', default=False,
+                        help='force use of sequential (non-theoretical) approach instead of integrated MPGNN')
+    
+    # Embedding mode configuration
+    parser.add_argument('--embedding_mode', type=str, default='none',
+                        choices=['none', 'spatial_only', 'temporal_only', 'spatiotemporal_only', 'spatial_temporal', 'all'],
+                        help='embedding mode for enhanced features')
+    parser.add_argument('--enable_base_embedding', action='store_true', default=False,
+                        help='whether to enable base learnable embedding')
+    
+    # Enhanced feature generation parameters
+    parser.add_argument('--rpearl_hidden', type=int, default=64, help='hidden dimension for R-PEARL spatial generator')
+    parser.add_argument('--rpearl_mlp_layers', type=int, default=2, help='number of MLP layers in R-PEARL')
+    parser.add_argument('--rpearl_k', type=int, default=16, help='K parameter for R-PEARL')
+    parser.add_argument('--lete_hidden', type=int, default=64, help='hidden dimension for LeTE temporal generator')
+    parser.add_argument('--lete_layers', type=int, default=2, help='number of layers in LeTE')
+    parser.add_argument('--lete_p', type=float, default=0.5, help='dropout probability for LeTE')
+    
+    # Fusion-specific parameters
+    parser.add_argument('--use_hidden_dim', type=int, default=128, help='hidden dimension for USE fusion')
+    parser.add_argument('--use_num_casm_layers', type=int, default=3, help='number of CASM layers in USE')
+    parser.add_argument('--use_num_smpn_layers', type=int, default=3, help='number of SMPN layers in USE')
+    parser.add_argument('--caga_hidden_dim', type=int, default=128, help='hidden dimension for CAGA fusion')
+    parser.add_argument('--caga_num_heads', type=int, default=8, help='number of attention heads for CAGA')
+    parser.add_argument('--clifford_dim', type=int, default=4, help='dimension of Clifford algebra')
+    parser.add_argument('--clifford_signature', type=str, default='euclidean', 
+                        choices=['euclidean', 'minkowski', 'mixed'], help='signature for Clifford algebra')
+    
+    # Memory and architecture parameters
+    parser.add_argument('--use_memory', action='store_true', default=False, help='whether to use memory for temporal models')
+    parser.add_argument('--memory_dim', type=int, default=128, help='dimension of memory')
+    parser.add_argument('--output_dim', type=int, default=128, help='output dimension of the model')
+    
+    # Mamba-specific parameters (for DyGMamba)
+    parser.add_argument('--mamba_d_model', type=int, default=128, help='model dimension for Mamba')
+    parser.add_argument('--mamba_d_state', type=int, default=16, help='state dimension for Mamba')
+    parser.add_argument('--mamba_d_conv', type=int, default=4, help='convolution dimension for Mamba')
+    parser.add_argument('--mamba_expand', type=int, default=2, help='expansion factor for Mamba')
+    
+    # Training and evaluation parameters
+    parser.add_argument('--enable_feature_caching', action='store_true', default=True, 
+                        help='whether to enable feature caching for efficiency')
+    parser.add_argument('--clear_cache_interval', type=int, default=100, 
+                        help='interval to clear feature cache during training')
+    
+    # Backward compatibility aliases
+    parser.add_argument('--n_degree', type=int, default=20, help='alias for num_neighbors')
+    parser.add_argument('--n_head', type=int, default=2, help='alias for num_heads')
+    parser.add_argument('--n_layer', type=int, default=2, help='alias for num_layers')
+    parser.add_argument('--drop_out', type=float, default=0.1, help='alias for dropout')
+    parser.add_argument('--lr', type=float, default=0.0001, help='alias for learning_rate')
+    parser.add_argument('--n_epoch', type=int, default=100, help='alias for num_epochs')
+    parser.add_argument('--seed', type=int, default=0, help='random seed')
+    parser.add_argument('--uniform', action='store_true', default=False, help='whether to use uniform sampling')
+    parser.add_argument('--different_new_nodes', action='store_true', default=False, 
+                        help='whether to use different new nodes between val and test')
 
 
     try:
         args = parser.parse_args()
         args.device = f'cuda:{args.gpu}' if torch.cuda.is_available() and args.gpu >= 0 else 'cpu'
+        
+        # Handle backward compatibility aliases
+        if hasattr(args, 'n_degree'):
+            args.num_neighbors = args.n_degree
+        if hasattr(args, 'n_head'):
+            args.num_heads = args.n_head  
+        if hasattr(args, 'n_layer'):
+            args.num_layers = args.n_layer
+        if hasattr(args, 'drop_out'):
+            args.dropout = args.drop_out
+        if hasattr(args, 'lr'):
+            args.learning_rate = args.lr
+        if hasattr(args, 'n_epoch'):
+            args.num_epochs = args.n_epoch
+            
     except:
         parser.print_help()
         sys.exit()

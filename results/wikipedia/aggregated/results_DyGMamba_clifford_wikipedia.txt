@@ -1,16 +1,16 @@
 Model: DyGMamba
 Fusion Method: clifford
 Dataset: wikipedia
-Experiment Type: baseline_original
-Configuration: {'dataset_name': 'wikipedia', 'model_name': 'DyGMamba', 'use_ccasf': False, 'spatial_dim': 64, 'temporal_dim': 64, 'ccasf_output_dim': 128, 'node_feat_dim': 172, 'edge_feat_dim': 172, 'fusion_strategy': 'clifford', 'fusion_method': 'clifford', 'clifford_dim': 4, 'clifford_signature': 'euclidean', 'clifford_fusion_mode': 'progressive', 'caga_num_heads': 8, 'caga_hidden_dim': 128, 'use_num_casm_layers': 3, 'use_num_smpn_layers': 3, 'use_hidden_dim': 128, 'weighted_fusion_learnable': True, 'mlp_hidden_dim': None, 'mlp_num_layers': 2, 'cross_attn_heads': 8, 'use_rpearl': False, 'use_enhanced_lete': False, 'rpearl_k': 16, 'rpearl_mlp_layers': 2, 'rpearl_hidden': 64, 'lete_p': 0.5, 'lete_layer_norm': True, 'lete_scale': True, 'time_feat_dim': 100, 'channel_embedding_dim': 100, 'patch_size': 1, 'num_layers': 2, 'num_heads': 2, 'dropout': 0.1, 'gamma': 0.5, 'max_input_sequence_length': 32, 'max_interaction_times': 5, 'learning_rate': 0.0001, 'weight_decay': 0.01, 'patience': 20, 'num_epochs': 100, 'batch_size': 200, 'eval_batch_size': 200, 'test_batch_size': 200, 'val_ratio': 0.15, 'test_ratio': 0.15, 'negative_sample_strategy': 'random', 'num_neighbors': 20, 'num_runs': 1, 'load_best_configs': False, 'device': 'cuda', 'num_workers': 8, 'seed': 42, 'data_root': '/home/s2516027/GLCE/processed_data', 'output_root': '/home/s2516027/GLCE/results', 'checkpoint_dir': '/home/s2516027/GLCE/checkpoints', 'log_every': 1, 'eval_every': 5, 'save_model': True, 'verbose': True}
+Experiment Type: ccasf_clifford
+Configuration: {'dataset_name': 'wikipedia', 'model_name': 'DyGMamba', 'use_ccasf': True, 'use_integrated_mpgnn': True, 'embedding_mode': 'spatiotemporal_only', 'enable_base_embedding': False, 'spatial_dim': 64, 'temporal_dim': 64, 'ccasf_output_dim': 128, 'node_feat_dim': 172, 'edge_feat_dim': 172, 'fusion_strategy': 'clifford', 'fusion_method': 'clifford', 'clifford_dim': 4, 'clifford_signature': 'euclidean', 'clifford_fusion_mode': 'progressive', 'caga_num_heads': 8, 'caga_hidden_dim': 128, 'use_num_casm_layers': 3, 'use_num_smpn_layers': 3, 'use_hidden_dim': 128, 'weighted_fusion_learnable': True, 'mlp_hidden_dim': None, 'mlp_num_layers': 2, 'cross_attn_heads': 8, 'use_rpearl': True, 'use_enhanced_lete': True, 'rpearl_k': 16, 'rpearl_mlp_layers': 2, 'rpearl_hidden': 64, 'lete_p': 0.5, 'lete_layer_norm': True, 'lete_scale': True, 'time_feat_dim': 100, 'channel_embedding_dim': 100, 'patch_size': 2, 'num_layers': 2, 'num_heads': 2, 'dropout': 0.1, 'gamma': 0.5, 'max_input_sequence_length': 64, 'max_interaction_times': 10, 'learning_rate': 0.0001, 'weight_decay': 0.01, 'patience': 20, 'num_epochs': 5, 'batch_size': 200, 'eval_batch_size': 200, 'test_batch_size': 200, 'val_ratio': 0.15, 'test_ratio': 0.15, 'negative_sample_strategy': 'random', 'num_neighbors': 20, 'num_runs': 1, 'load_best_configs': False, 'device': 'cuda', 'num_workers': 8, 'seed': 0, 'data_root': '/home/s2516027/GLCE/processed_data', 'output_root': '/home/s2516027/GLCE/results', 'checkpoint_dir': '/home/s2516027/GLCE/checkpoints', 'log_every': 1, 'eval_every': 5, 'save_model': True, 'verbose': True}
 
-train_auc: 0.9889 ± 0.0000
-train_ap: 0.9894 ± 0.0000
-val_auc: 0.9911 ± 0.0000
-val_ap: 0.9917 ± 0.0000
-test_auc: 0.9888 ± 0.0000
-test_ap: 0.9898 ± 0.0000
-new_val_auc: 0.9879 ± 0.0000
-new_val_ap: 0.9880 ± 0.0000
-new_test_auc: 0.9836 ± 0.0000
-new_test_ap: 0.9847 ± 0.0000
+train_auc: 0.9835 ± 0.0000
+train_ap: 0.9851 ± 0.0000
+val_auc: 0.9861 ± 0.0000
+val_ap: 0.9872 ± 0.0000
+test_auc: 0.9821 ± 0.0000
+test_ap: 0.9845 ± 0.0000
+new_val_auc: 0.9809 ± 0.0000
+new_val_ap: 0.9829 ± 0.0000
+new_test_auc: 0.9734 ± 0.0000
+new_test_ap: 0.9769 ± 0.0000

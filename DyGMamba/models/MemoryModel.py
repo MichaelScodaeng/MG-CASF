@@ -3,8 +3,8 @@ import numpy as np
 import torch.nn as nn
 from collections import defaultdict
 
-from utils.utils import NeighborSampler
-from models.modules import TimeEncoder, MergeLayer, MultiHeadAttention
+from ..utils.utils import NeighborSampler
+from .modules import TimeEncoder, MergeLayer, MultiHeadAttention
 
 
 class MemoryModel(torch.nn.Module):
@@ -166,6 +166,25 @@ class MemoryModel(torch.nn.Module):
             dst_node_embeddings = updated_node_memories[torch.from_numpy(dst_node_ids)]
 
         return src_node_embeddings, dst_node_embeddings
+
+    # --- Convenience wrappers for Integrated* layers (JODIE expects these) ---
+    def get_memory(self, node_ids: torch.Tensor) -> torch.Tensor:
+        """Return current memory vectors for given node ids (Torch tensor input)."""
+        if isinstance(node_ids, torch.Tensor):
+            node_ids_np = node_ids.detach().cpu().numpy()
+        else:
+            node_ids_np = np.asarray(node_ids)
+        return self.memory_bank.get_memories(node_ids=node_ids_np)
+
+    def update_memory(self, node_ids: torch.Tensor, new_memories: torch.Tensor) -> None:
+        """Directly overwrite memory states for given node ids (used by JODIE mutual recursion)."""
+        if isinstance(node_ids, torch.Tensor):
+            node_ids_np = node_ids.detach().cpu().numpy()
+        else:
+            node_ids_np = np.asarray(node_ids)
+        # Ensure shapes match
+        assert new_memories.shape[0] == len(node_ids_np), "Mismatch between node ids and provided memory rows"
+        self.memory_bank.overwrite(node_ids_np, new_memories.detach())
 
     def get_updated_memories(self, node_ids: np.ndarray, node_raw_messages: dict):
         """
@@ -347,6 +366,10 @@ class MemoryBank(nn.Module):
         :return:
         """
         self.node_memories[torch.from_numpy(node_ids)] = updated_node_memories
+
+    def overwrite(self, node_ids: np.ndarray, new_memories: torch.Tensor):
+        """Alias for set_memories used by integrated wrappers."""
+        self.set_memories(node_ids=node_ids, updated_node_memories=new_memories)
 
     def backup_memory_bank(self):
         """

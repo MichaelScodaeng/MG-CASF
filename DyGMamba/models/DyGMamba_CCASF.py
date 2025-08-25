@@ -11,16 +11,16 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import Dict, Any
 
-from models.modules import TimeEncoder
-from models.CCASF import CliffordSpatiotemporalFusion, STAMPEDEFramework
-from models.lete_adapter import EnhancedLeTE_Adapter
-from models.rpearl_adapter import RPEARLAdapter, SimpleGraphSpatialEncoder
-from models.clifford_infrastructure import (
+from .modules import TimeEncoder
+from .CCASF import CliffordSpatiotemporalFusion, STAMPEDEFramework
+from .lete_adapter import EnhancedLeTE_Adapter
+from .rpearl_adapter import RPEARLAdapter, SimpleGraphSpatialEncoder
+from .clifford_infrastructure import (
     FullCliffordInfrastructure,
     CliffordAdaptiveGraphAttention,
     UnifiedSpacetimeEmbeddings
 )
-from utils.utils import NeighborSampler
+from ..utils.utils import NeighborSampler
 import logging
 # Conditional import of Mamba to handle GLIBC compatibility issues
 try:
@@ -316,7 +316,7 @@ class DyGMamba_CCASF(nn.Module):
             )
         else:
             # Basic LeTE adapter
-            from models.lete_adapter import LeTE_Adapter
+            from .lete_adapter import LeTE_Adapter
             self.temporal_encoder = LeTE_Adapter(
                 dim=self.temporal_dim,
                 device=self.device
@@ -342,7 +342,7 @@ class DyGMamba_CCASF(nn.Module):
         """Initialize the standard DyGMamba components."""
         
         # Neighbor co-occurrence feature encoder
-        from models.DyGMamba import NIFEncoder
+        from .DyGMamba import NIFEncoder
         self.neighbor_co_occurrence_feat_dim = self.channel_embedding_dim
         self.neighbor_co_occurrence_encoder = NIFEncoder(nif_feat_dim=self.neighbor_co_occurrence_feat_dim, device=self.device)
 
@@ -401,7 +401,7 @@ class DyGMamba_CCASF(nn.Module):
         self.channel_norm = nn.LayerNorm(self.num_channels * self.channel_embedding_dim // feature_expansion_size)
 
         # Feed forward network (need to import this)
-        from models.modules import FeedForwardNet
+    from .modules import FeedForwardNet
         self.channel_feedforward = FeedForwardNet(input_dim=self.num_channels * self.channel_embedding_dim // feature_expansion_size,
                                                  hidden_dim=self.num_channels * self.channel_embedding_dim // feature_expansion_size,
                                                  output_dim=self.num_channels * self.channel_embedding_dim // feature_expansion_size,

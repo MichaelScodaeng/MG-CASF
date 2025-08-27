@@ -2,36 +2,23 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional
 
-from .modules import TimeEncoder, FeedForwardNet
-from ..utils.utils import NeighborSampler
-
-# Conditional import of Mamba to handle GLIBC compatibility issues
-try:
-    from mamba_ssm import Mamba
-    MAMBA_AVAILABLE = True
-except ImportError as e:
-    print(f"Warning: mamba_ssm not available: {e}. Using fallback implementation.")
-    MAMBA_AVAILABLE = False
-    
-    # Fallback Mamba implementation using standard PyTorch layers
-    class Mamba(nn.Module):
-        def __init__(self, d_model, **kwargs):
-            super().__init__()
-            self.d_model = d_model
-            # Use a simple LSTM as fallback for selective scan
-            self.lstm = nn.LSTM(d_model, d_model, batch_first=True)
-            self.norm = nn.LayerNorm(d_model)
-            
-        def forward(self, x):
-            # Simple fallback: use LSTM instead of selective scan
-            output, _ = self.lstm(x)
-            return self.norm(output)
+from models.modules import TimeEncoder
+from utils.utils import NeighborSampler
+from mamba_ssm import Mamba
 
 
 class DyGMamba(nn.Module):
+    def _to_numpy(self, x):
+        if torch.is_tensor(x):
+            return x.detach().cpu().numpy()
+        return np.asarray(x)
 
+    def _to_tensor(self, x, dtype=torch.float32):
+        if torch.is_tensor(x):
+            return x.to(self.device, dtype=dtype)
+        # zero-copy for numpy on CPU; otherwise constructs tensor
+        return torch.as_tensor(x, dtype=dtype, device=self.device)
     def __init__(self, node_raw_features: np.ndarray, edge_raw_features: np.ndarray, neighbor_sampler: NeighborSampler,
                  time_feat_dim: int, channel_embedding_dim: int, patch_size: int = 1, num_layers: int = 2, num_heads: int = 2,
                  dropout: float = 0.1,gamma: float = 0.5, max_input_sequence_length: int = 512, max_interaction_times: int = 10, device: str = 'cpu'):
@@ -55,11 +42,6 @@ class DyGMamba(nn.Module):
 
         self.node_raw_features = torch.from_numpy(node_raw_features.astype(np.float32)).to(device)
         self.edge_raw_features = torch.from_numpy(edge_raw_features.astype(np.float32)).to(device)
-        # Optional overridden node features (tensor with same shape) allowing external
-        # integrated pipelines to inject adapted / enhanced features while preserving gradients.
-        # When set, indexing for node features will use this tensor instead of the static
-        # numpy-converted matrix above. (None means fall back to original features.)
-        self.override_node_features: Optional[torch.Tensor] = None
 
         self.neighbor_sampler = neighbor_sampler
         self.node_feat_dim = self.node_raw_features.shape[1]
@@ -74,6 +56,7 @@ class DyGMamba(nn.Module):
         self.max_input_sequence_length = max_input_sequence_length
         self.max_interaction_times = max_interaction_times
         self.device = device
+
 
         self.time_encoder = TimeEncoder(time_dim=time_feat_dim)
 
@@ -138,6 +121,7 @@ class DyGMamba(nn.Module):
         :param node_interact_times: ndarray, shape (batch_size, )
         :return:
         """
+        
         # get the first-hop neighbors of source and destination nodes
         # three lists to store source nodes' first-hop neighbor ids, edge ids and interaction timestamp information, with batch_size as the list length
         src_nodes_neighbor_ids_list, src_nodes_edge_ids_list, src_nodes_neighbor_times_list = \
@@ -402,8 +386,7 @@ class DyGMamba(nn.Module):
         :return:
         """
         # Tensor, shape (batch_size, max_seq_length, node_feat_dim)
-        feature_source = self.override_node_features if self.override_node_features is not None else self.node_raw_features
-        padded_nodes_neighbor_node_raw_features = feature_source[torch.from_numpy(padded_nodes_neighbor_ids)]
+        padded_nodes_neighbor_node_raw_features = self.node_raw_features[torch.from_numpy(padded_nodes_neighbor_ids)]
         # Tensor, shape (batch_size, max_seq_length, edge_feat_dim)
         padded_nodes_edge_raw_features = self.edge_raw_features[torch.from_numpy(padded_nodes_edge_ids)]
         # Tensor, shape (batch_size, max_seq_length, time_feat_dim)
@@ -463,23 +446,6 @@ class DyGMamba(nn.Module):
         if self.neighbor_sampler.sample_neighbor_strategy in ['uniform', 'time_interval_aware']:
             assert self.neighbor_sampler.seed is not None
             self.neighbor_sampler.reset_random_state()
-
-    # ------------------------------------------------------------------
-    # Override feature injection API
-    # ------------------------------------------------------------------
-    def set_override_node_features(self, features: Optional[torch.Tensor]):
-        """Set an override tensor for node features.
-
-        Args:
-            features: Tensor with shape identical to self.node_raw_features (num_nodes+1, node_feat_dim)
-                      or None to clear override.
-        """
-        if features is not None:
-            if features.shape != self.node_raw_features.shape:
-                raise ValueError(f"Override features shape {features.shape} != original {self.node_raw_features.shape}")
-            if features.device != self.node_raw_features.device:
-                features = features.to(self.node_raw_features.device)
-        self.override_node_features = features
 
 
 class NIFEncoder(nn.Module):

@@ -46,6 +46,7 @@ class DyGFormer(nn.Module):
         self.max_input_sequence_length = max_input_sequence_length
         self.device = device
 
+        # FIX: Remove the 'device=device' argument from TimeEncoder instantiation
         self.time_encoder = TimeEncoder(time_dim=time_feat_dim)
 
         self.neighbor_co_occurrence_feat_dim = self.channel_embedding_dim

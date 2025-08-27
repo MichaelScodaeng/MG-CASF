@@ -1,14 +1,11 @@
 import torch
 import torch.nn as nn
 from typing import Dict, Any
-try:
-    from models.integrated_mpgnn_backbone import IntegratedMPGNNBackbone
-except ImportError:
-    from integrated_mpgnn_backbone import IntegratedMPGNNBackbone
+from .integrated_mpgnn import IntegratedMPGNN
 from .DyGMamba import DyGMamba
 
 
-class IntegratedDyGMamba(IntegratedMPGNNBackbone):
+class IntegratedDyGMamba(IntegratedMPGNN):
     """
     Integrated DyGMamba model that combines enhanced features with DyGMamba backbone.
     
@@ -46,44 +43,24 @@ class IntegratedDyGMamba(IntegratedMPGNNBackbone):
         # Get dimensions after enhanced feature computation
         total_enhanced_dim = self.enhanced_feature_manager.get_total_feature_dim()
         
-        # Debug device information
-        print(f"🔧 DEBUG: torch.cuda.is_available() = {torch.cuda.is_available()}")
-        print(f"🔧 DEBUG: self.device = {self.device}")
-        print(f"🔧 DEBUG: self.device != 'cpu' = {self.device != 'cpu'}")
+        # Compute enhanced features for ALL nodes in the dataset
+        num_nodes = self.node_raw_features.shape[0]
+        all_node_ids = torch.arange(num_nodes)
+        # Use timestamp 0.0 for initialization (will be updated during training)
+        init_timestamps = torch.zeros(num_nodes)
         
-        # Check if CUDA is available for Mamba
-        self.use_mamba = torch.cuda.is_available() and self.device != 'cpu'
-        print(f"🔧 DEBUG: self.use_mamba = {self.use_mamba}")
+        # Compute enhanced features for all nodes
+        all_enhanced_features = self.compute_enhanced_features_batch(all_node_ids, init_timestamps)
         
-        if self.use_mamba:
-            # Compute enhanced features for ALL nodes in the dataset
-            num_nodes = self.node_raw_features.shape[0]
-            all_node_ids = torch.arange(num_nodes).to(self.device)  # Move to device
-            # Use timestamp 0.0 for initialization (will be updated during training)
-            init_timestamps = torch.zeros(num_nodes).to(self.device)  # Move to device
-            
-            # Compute enhanced features for all nodes
-            all_enhanced_features = self.compute_enhanced_features_batch(all_node_ids, init_timestamps)
-            
-            # Initialize DyGMamba backbone with enhanced features instead of raw features
-            self.dygmamba_backbone = DyGMamba(
-                node_raw_features=all_enhanced_features.detach().cpu().numpy(),
-                edge_raw_features=self.edge_raw_features.cpu().numpy() if isinstance(self.edge_raw_features, torch.Tensor) else self.edge_raw_features,
-                neighbor_sampler=self.neighbor_sampler,
-                time_feat_dim=self.time_feat_dim,
-                channel_embedding_dim=self.channel_embedding_dim,
-                device=self.device
-            )
-        else:
-            print("⚠️  CUDA not available - using CPU fallback without Mamba layers")
-            # CPU fallback: simple MLP layers instead of Mamba
-            self.fallback_temporal_encoder = nn.Sequential(
-                nn.Linear(total_enhanced_dim, self.channel_embedding_dim * 2),
-                nn.ReLU(),
-                nn.Linear(self.channel_embedding_dim * 2, self.channel_embedding_dim),
-                nn.ReLU(),
-                nn.Linear(self.channel_embedding_dim, total_enhanced_dim)
-            )
+        # Initialize DyGMamba backbone with enhanced features instead of raw features
+        self.dygmamba_backbone = DyGMamba(
+            node_raw_features=all_enhanced_features.detach().numpy(),  # Use enhanced features
+            edge_raw_features=self.edge_raw_features.numpy() if isinstance(self.edge_raw_features, torch.Tensor) else self.edge_raw_features,
+            neighbor_sampler=self.neighbor_sampler,
+            time_feat_dim=self.time_feat_dim,
+            channel_embedding_dim=self.channel_embedding_dim,
+            device=self.device
+        )
         
         # Output projection - from enhanced features to node features
         self.output_layer = nn.Linear(total_enhanced_dim, self.node_feat_dim)
@@ -106,46 +83,29 @@ class IntegratedDyGMamba(IntegratedMPGNNBackbone):
         Returns:
             node_embeddings: [batch_size * 2, enhanced_feat_dim] - Final DyGMamba embeddings
         """
-        self.use_mamba = torch.cuda.is_available() and self.device != 'cpu'
-        if self.use_mamba:
-            # Use full DyGMamba with Mamba layers (CUDA required)
-            # Convert tensors to numpy arrays for DyGMamba compatibility
-            src_node_ids_np = src_node_ids.cpu().numpy() if isinstance(src_node_ids, torch.Tensor) else src_node_ids
-            dst_node_ids_np = dst_node_ids.cpu().numpy() if isinstance(dst_node_ids, torch.Tensor) else dst_node_ids
-            timestamps_np = timestamps.cpu().numpy() if isinstance(timestamps, torch.Tensor) else timestamps
-            
-            # Process through DyGMamba
-            src_embeddings, dst_embeddings, _ = self.dygmamba_backbone.compute_src_dst_node_temporal_embeddings(
-                src_node_ids=src_node_ids_np,
-                dst_node_ids=dst_node_ids_np,
-                node_interact_times=timestamps_np
-            )
-            
-            # Convert back to tensors and combine
-            # FIX: Remove torch.from_numpy() as src_embeddings and dst_embeddings are already tensors
-            src_embeddings = src_embeddings.float().to(self.device)
-            dst_embeddings = dst_embeddings.float().to(self.device)
-            node_embeddings = torch.cat([src_embeddings, dst_embeddings], dim=0)
-            
-        else:
-            # CPU fallback: use simple temporal encoding without Mamba
-            # Extract features for src and dst nodes
-            src_features = enhanced_node_features[src_node_ids]  # [batch_size, enhanced_feat_dim]
-            dst_features = enhanced_node_features[dst_node_ids]  # [batch_size, enhanced_feat_dim]
-            
-            # Apply temporal encoding
-            src_embeddings = self.fallback_temporal_encoder(src_features)
-            dst_embeddings = self.fallback_temporal_encoder(dst_features)
-            
-            # Combine outputs
-            node_embeddings = torch.cat([src_embeddings, dst_embeddings], dim=0)
+        # Convert tensors to numpy arrays for DyGMamba compatibility
+        src_node_ids_np = src_node_ids.cpu().numpy() if isinstance(src_node_ids, torch.Tensor) else src_node_ids
+        dst_node_ids_np = dst_node_ids.cpu().numpy() if isinstance(dst_node_ids, torch.Tensor) else dst_node_ids
+        timestamps_np = timestamps.cpu().numpy() if isinstance(timestamps, torch.Tensor) else timestamps
+        
+        # Process through DyGMamba
+        src_embeddings, dst_embeddings, _ = self.dygmamba_backbone.compute_src_dst_node_temporal_embeddings(
+            src_node_ids=src_node_ids_np,
+            dst_node_ids=dst_node_ids_np,
+            node_interact_times=timestamps_np
+        )
+        
+        # Convert back to tensors and combine
+        src_embeddings = torch.from_numpy(src_embeddings).float().to(self.device)
+        dst_embeddings = torch.from_numpy(dst_embeddings).float().to(self.device)
+        node_embeddings = torch.cat([src_embeddings, dst_embeddings], dim=0)
         
         return node_embeddings
         
     def set_neighbor_sampler(self, neighbor_sampler):
         """Update neighbor sampler (e.g., for train vs eval)"""
         self.neighbor_sampler = neighbor_sampler
-        if self.use_mamba and hasattr(self, 'dygmamba_backbone'):
+        if hasattr(self, 'dygmamba_backbone'):
             self.dygmamba_backbone.set_neighbor_sampler(neighbor_sampler)
             
     def forward(self, src_node_ids: torch.Tensor, dst_node_ids: torch.Tensor,

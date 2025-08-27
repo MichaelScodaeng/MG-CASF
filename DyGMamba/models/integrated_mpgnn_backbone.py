@@ -83,11 +83,23 @@ class IntegratedMPGNNBackbone(nn.Module, ABC):
         self.dropout = config.get('dropout', 0.1)
         
         # Enhanced Node Feature Manager (core MPGNN component)
+        print(f"🔧 DEBUG: Creating enhanced feature manager with device: {self.device}")
+        print(f"🔧 DEBUG: node_raw_features device: {node_raw_features.device}")
+        print(f"🔧 DEBUG: edge_raw_features device: {edge_raw_features.device}")
+        
         self.enhanced_feature_manager = EnhancedNodeFeatureManager(
             config=config,
             node_raw_features=node_raw_features,
             edge_raw_features=edge_raw_features
         )
+        
+        # Move enhanced feature manager to device
+        self.enhanced_feature_manager = self.enhanced_feature_manager.to(self.device)
+        print(f"🔧 DEBUG: Enhanced feature manager moved to device: {self.device}")
+        
+        # Verify all buffers are on the correct device
+        for name, buffer in self.enhanced_feature_manager.named_buffers():
+            print(f"🔧 DEBUG: Buffer {name} device: {buffer.device}")
         
         # Get enhanced feature dimension
         self.enhanced_node_feat_dim = self.enhanced_feature_manager.get_total_feature_dim()

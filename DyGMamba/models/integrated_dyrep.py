@@ -10,9 +10,18 @@ import torch.nn.functional as F
 import numpy as np
 from typing import Optional, Tuple, Dict, Any
 
-from .integrated_mpgnn_backbone import IntegratedMPGNNBackbone
-from .modules import TimeEncoder
-from .MemoryModel import MemoryModel
+try:
+    from models.integrated_mpgnn_backbone import IntegratedMPGNNBackbone
+    from models.modules import TimeEncoder
+    from models.MemoryModel import MemoryModel
+    from utils.utils import NeighborSampler
+except ImportError:
+    import sys, os
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from integrated_mpgnn_backbone import IntegratedMPGNNBackbone
+    from modules import TimeEncoder
+    from MemoryModel import MemoryModel
+    from utils import NeighborSampler
 
 
 class IntegratedDyRepLayer(nn.Module):
@@ -31,19 +40,11 @@ class IntegratedDyRepLayer(nn.Module):
         self.dropout = dropout
         self.device = device
         
-        # Time encoder
-        self.time_encoder = TimeEncoder(time_dim=time_feat_dim, device=device)
+        # Time encoder (no device parameter)
+        self.time_encoder = TimeEncoder(time_dim=time_feat_dim)
         
-        # Associative memory for DyRep
-        self.memory_bank = MemoryModel(
-            node_feats=torch.zeros(1, node_feat_dim),
-            memory_feats=torch.zeros(1, memory_dim),
-            edge_feats=torch.zeros(1, edge_feat_dim),
-            time_feats=torch.zeros(1, time_feat_dim),
-            embedding_module_type='graph_sum',
-            device=device,
-            n_neighbors=num_neighbors
-        )
+        # Note: We'll use the main DyRep's memory bank, not create a separate one
+        self.memory_bank = None  # Will be set by parent DyRep class
         
         # Feature projections
         self.node_feat_proj = nn.Linear(node_feat_dim, memory_dim)
@@ -72,9 +73,13 @@ class IntegratedDyRepLayer(nn.Module):
             nn.Tanh()
         )
         
-        # Output projection
-        self.output_proj = nn.Linear(memory_dim + node_feat_dim, memory_dim)
+        # Output projection (will be dynamically resized as needed)
+        self.output_proj = nn.Linear(self.memory_dim * 2, self.memory_dim)  # Start with reasonable guess
         self.dropout_layer = nn.Dropout(dropout)
+        
+    def set_memory_bank(self, memory_bank):
+        """Set the memory bank from parent DyRep class"""
+        self.memory_bank = memory_bank
         
     def forward(self, src_node_embeddings: torch.Tensor, dst_node_embeddings: torch.Tensor,
                 src_node_ids: torch.Tensor, dst_node_ids: torch.Tensor,
@@ -111,7 +116,8 @@ class IntegratedDyRepLayer(nn.Module):
         dst_memory = self.memory_bank.get_memory(dst_node_ids)  # [batch_size, memory_dim]
         
         # Compute time embeddings
-        time_embeddings = self.time_encoder(timestamps.unsqueeze(-1))  # [batch_size, time_feat_dim]
+        time_embeddings = self.time_encoder(timestamps.unsqueeze(-1))  # [batch_size, 1, time_feat_dim]
+        time_embeddings = time_embeddings.squeeze(1)  # [batch_size, time_feat_dim] - squeeze to 2D
         
         # Apply evolution function (temporal dynamics)
         src_evolved = self.evolution_function(torch.cat([src_memory, time_embeddings], dim=1))
@@ -142,6 +148,11 @@ class IntegratedDyRepLayer(nn.Module):
         # Combine updated memory with enhanced features
         src_combined = torch.cat([updated_src_memory, src_node_projected], dim=1)
         dst_combined = torch.cat([updated_dst_memory, dst_node_projected], dim=1)
+        
+        # Dynamic output projection (like JODIE/TGN does)
+        expected_in_dim = src_combined.size(1)
+        if self.output_proj.in_features != expected_in_dim:
+            self.output_proj = nn.Linear(expected_in_dim, self.memory_dim).to(self.device)
         
         # Final projection
         src_output = self.output_proj(src_combined)
@@ -178,19 +189,46 @@ class IntegratedDyRep(IntegratedMPGNNBackbone):
         # Get dimensions after enhanced feature computation
         total_enhanced_dim = self.enhanced_feature_manager.get_total_feature_dim()
         
-        # DyRep layer with enhanced features
+        # Create single MemoryModel with ENHANCED feature dimensions (shared across layers)
+        # SOLUTION: Use enhanced feature dimension as memory dimension to preserve all information
+        # This follows the same pattern as TGN and JODIE
+        
+        # Create dummy features with ENHANCED dimensions for proper memory initialization
+        enhanced_dim = total_enhanced_dim
+        dummy_enhanced_features = np.zeros((100, enhanced_dim), dtype=np.float32)
+        dummy_edge_features = np.zeros((100, self.edge_feat_dim), dtype=np.float32)
+        
+        self.memory_bank = MemoryModel(
+            node_raw_features=dummy_enhanced_features,  # Use enhanced_dim, not raw node_feat_dim
+            edge_raw_features=dummy_edge_features,
+            neighbor_sampler=self.neighbor_sampler,
+            time_feat_dim=self.time_feat_dim,
+            model_name='DyRep',
+            num_layers=2,
+            num_heads=2,
+            dropout=self.dropout,
+            device=self.device
+        )
+        
+        # Now memory_dim = enhanced_dim = 308, which preserves all enhanced information
+        actual_memory_dim = self.memory_bank.memory_dim  # Should be 308
+        
+        # DyRep layer with enhanced features - memory now matches enhanced dimension
         self.dyrep_layer = IntegratedDyRepLayer(
-            node_feat_dim=total_enhanced_dim,  # Use enhanced dim instead of raw
+            node_feat_dim=total_enhanced_dim,  # Enhanced feature dim
             edge_feat_dim=self.edge_feat_dim,
-            memory_dim=self.memory_dim,
+            memory_dim=actual_memory_dim,      # Now 308 (enhanced_dim), not config memory_dim
             time_feat_dim=self.time_feat_dim,
             num_neighbors=self.num_neighbors,
             dropout=self.dropout,
             device=self.device
         )
         
-        # Output projection
-        self.output_layer = nn.Linear(self.memory_dim, self.node_feat_dim)
+        # Set the shared memory bank in the layer
+        self.dyrep_layer.set_memory_bank(self.memory_bank)
+        
+        # Output projection - from enhanced memory_dim to raw node_feat_dim
+        self.output_layer = nn.Linear(actual_memory_dim, self.node_feat_dim)
         
     def _compute_temporal_embeddings(self, enhanced_node_features: torch.Tensor,
                                    src_node_ids: torch.Tensor, dst_node_ids: torch.Tensor,

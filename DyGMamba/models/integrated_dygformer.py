@@ -32,7 +32,7 @@ class IntegratedDyGFormerLayer(nn.Module):
         self.device = device
         
         # Time encoder
-        self.time_encoder = TimeEncoder(time_dim=time_feat_dim, device=device)
+        self.time_encoder = TimeEncoder(time_dim=time_feat_dim)
         
         # Node and edge projections
         self.node_raw_feat_proj = nn.Linear(node_raw_features_dim, time_feat_dim)
@@ -153,11 +153,16 @@ class IntegratedDyGFormer(IntegratedMPGNNBackbone):
         dst_enhanced_features = enhanced_node_features[batch_size:]  # [batch_size, enhanced_dim]
         
         # Step 2: Sample neighbors and get their enhanced features
+        # Convert tensors to numpy for neighbor sampler compatibility
+        src_node_ids_np = src_node_ids.cpu().numpy()
+        dst_node_ids_np = dst_node_ids.cpu().numpy()
+        node_interact_times_np = node_interact_times.cpu().numpy()
+        
         src_nodes_neighbor_node_ids, src_nodes_neighbor_edge_ids, src_nodes_neighbor_times = \
-            self.neighbor_sampler.get_all_first_hop_neighbors(node_ids=src_node_ids, node_interact_times=node_interact_times)
+            self.neighbor_sampler.get_all_first_hop_neighbors(node_ids=src_node_ids_np, node_interact_times=node_interact_times_np)
             
         dst_nodes_neighbor_node_ids, dst_nodes_neighbor_edge_ids, dst_nodes_neighbor_times = \
-            self.neighbor_sampler.get_all_first_hop_neighbors(node_ids=dst_node_ids, node_interact_times=node_interact_times)
+            self.neighbor_sampler.get_all_first_hop_neighbors(node_ids=dst_node_ids_np, node_interact_times=node_interact_times_np)
         
         # Pad/truncate neighbors to fixed size
         src_neighbors_padded = self._pad_neighbors(src_nodes_neighbor_node_ids, num_neighbors)
@@ -180,9 +185,11 @@ class IntegratedDyGFormer(IntegratedMPGNNBackbone):
             dst_neighbor_edges_padded, dst_neighbor_times_padded, node_interact_times)
             
         src_time_embeddings = self.dygformer_layer.time_encoder(
-            (src_neighbor_times_padded - node_interact_times.unsqueeze(1)).unsqueeze(-1))
+            (src_neighbor_times_padded - node_interact_times.unsqueeze(1)).view(-1, 1)
+        ).view(batch_size, num_neighbors, -1)
         dst_time_embeddings = self.dygformer_layer.time_encoder(
-            (dst_neighbor_times_padded - node_interact_times.unsqueeze(1)).unsqueeze(-1))
+            (dst_neighbor_times_padded - node_interact_times.unsqueeze(1)).view(-1, 1)
+        ).view(batch_size, num_neighbors, -1)
         
         # Step 4: Apply DyGFormer layers with enhanced features
         src_node_embeddings = self.dygformer_layer.forward(
@@ -275,8 +282,14 @@ class IntegratedDyGFormer(IntegratedMPGNNBackbone):
         edge_embeddings = self.dygformer_layer.edge_raw_feat_proj(edge_features)
         
         # Add time information
-        time_diffs = (edge_times - interact_times.unsqueeze(1)).unsqueeze(-1)  # [batch_size, num_neighbors, 1]
-        time_embeddings = self.dygformer_layer.time_encoder(time_diffs)
+        time_diffs = (edge_times - interact_times.unsqueeze(1))  # [batch_size, num_neighbors]
+        
+        # Reshape time_diffs for time encoder: [batch_size * num_neighbors, 1]
+        time_diffs_flat = time_diffs.view(-1, 1)  # [batch_size * num_neighbors, 1]
+        time_embeddings_flat = self.dygformer_layer.time_encoder(time_diffs_flat)  # [batch_size * num_neighbors, time_feat_dim]
+        
+        # Reshape back to [batch_size, num_neighbors, time_feat_dim]
+        time_embeddings = time_embeddings_flat.view(batch_size, num_neighbors, -1)
         
         return edge_embeddings + time_embeddings
     
@@ -345,8 +358,10 @@ class IntegratedDyGFormer(IntegratedMPGNNBackbone):
             src_neighbor_edges_padded, src_neighbor_times_padded, timestamps)
         
         # Compute time embeddings
+        time_diffs = (src_neighbor_times_padded - timestamps.unsqueeze(1))  # [batch_size, num_neighbors]
         src_time_embeddings = self.dygformer_layer.time_encoder(
-            (src_neighbor_times_padded - timestamps.unsqueeze(1)).unsqueeze(-1))
+            time_diffs.view(-1, 1)  # [batch_size * num_neighbors, 1]
+        ).view(batch_size, num_neighbors, -1)  # [batch_size, num_neighbors, time_feat_dim]
         
         # Apply DyGFormer transformer
         output = self.dygformer_layer(

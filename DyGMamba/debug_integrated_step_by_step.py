@@ -1,3 +1,5 @@
+
+
 #!/usr/bin/env python3
 """
 Step-by-Step Debug Script for Integrated MPGNN Framework
@@ -349,6 +351,464 @@ def test_integrated_tgn():
         traceback.print_exc()
         return False
 
+def test_integrated_dyrep():
+    """Phase 2.4: Test IntegratedDyRep (Associative memory model)"""
+    print("="*60)
+    print("PHASE 2.4: TESTING INTEGRATED DYREP")
+    print("="*60)
+    
+    try:
+        from models.integrated_dyrep import IntegratedDyRep
+        
+        # Get test data from previous phase
+        success, test_data = test_backbone_creation()
+        if not success:
+            print("❌ Cannot test DyRep without successful backbone creation")
+            return False
+            
+        config = {
+            'device': 'cpu',
+            'embedding_module_type': 'none',  # Start simple
+            'num_heads': 4,
+            'num_layers': 2,
+            'dropout': 0.1,
+            'use_memory': True,  # DyRep uses associative memory
+            'memory_dim': 64,
+            'time_feat_dim': 32,
+            'output_dim': 64,
+            'model_dim': 64,
+            'spatial_dim': 32,
+            'temporal_dim': 32,
+            'spatiotemporal_dim': 32,
+            'num_neighbors': 20
+        }
+        
+        print("Creating IntegratedDyRep model...")
+        print(f"🔧 Config: memory_dim={config['memory_dim']}, time_feat_dim={config['time_feat_dim']}")
+        
+        model = IntegratedDyRep(
+            config=config,
+            node_raw_features=test_data['node_features'],
+            edge_raw_features=test_data['edge_features'],
+            neighbor_sampler=test_data['neighbor_sampler']
+        )
+        print("✅ IntegratedDyRep created successfully")
+        print(f"🔍 Model enhanced_node_feat_dim: {model.enhanced_node_feat_dim}")
+        
+        # Test forward pass
+        print("Testing forward pass...")
+        batch_size = 8
+        src_ids = torch.tensor(test_data['src_node_ids'][:batch_size])
+        dst_ids = torch.tensor(test_data['dst_node_ids'][:batch_size])
+        timestamps = torch.tensor(test_data['node_interact_times'][:batch_size], dtype=torch.float32)
+        edge_feats = test_data['edge_features'][:batch_size]
+        
+        print(f"🔍 Input shapes: src_ids={src_ids.shape}, dst_ids={dst_ids.shape}")
+        print(f"🔍 Input shapes: timestamps={timestamps.shape}, edge_feats={edge_feats.shape}")
+        
+        with torch.no_grad():
+            output = model(src_ids, dst_ids, timestamps, edge_feats)
+        
+        print(f"✅ Forward pass successful: output shape {output.shape}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ IntegratedDyRep failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+def test_integrated_dygmamba():
+    """Phase 3.1: Test IntegratedDyGMamba (Mamba-based sequence model)"""
+    print("="*60)
+    print("PHASE 3.1: TESTING INTEGRATED DYGMAMBA")
+    print("="*60)
+    
+    try:
+        from models.integrated_dygmamba import IntegratedDyGMamba
+        
+        # Get test data from previous phase
+        success, test_data = test_backbone_creation()
+        if not success:
+            print("❌ Cannot test DyGMamba without successful backbone creation")
+            return False
+            
+        config = {
+            'device': 'cuda' if torch.cuda.is_available() else 'cpu',  # Use CUDA for DyGMamba
+            'embedding_module_type': 'all',  # Use all enhanced features for Mamba
+            'num_heads': 2,
+            'num_layers': 2,
+            'dropout': 0.1,
+            'use_memory': False,  # DyGMamba uses Mamba for temporal modeling
+            'time_feat_dim': 32,
+            'output_dim': 64,
+            'model_dim': 64,
+            'spatial_dim': 32,
+            'temporal_dim': 32,
+            'spatiotemporal_dim': 128,
+            # DyGMamba-specific config
+            'channel_embedding_dim': 50,
+            'patch_size': 1,
+            'gamma': 0.5,
+            'max_input_sequence_length': 512,
+            'max_interaction_times': 10
+        }
+        
+        print("Creating IntegratedDyGMamba model...")
+        print(f"🔧 Config: time_feat_dim={config['time_feat_dim']}, channel_embedding_dim={config['channel_embedding_dim']}")
+        print("Debug torch cuda", torch.cuda.is_available())
+        
+        # Move test data to the correct device
+        device = config['device']
+        node_features = test_data['node_features'].to(device)
+        edge_features = test_data['edge_features'].to(device)
+        
+        model = IntegratedDyGMamba(
+            config=config,
+            node_raw_features=node_features,
+            edge_raw_features=edge_features,
+            neighbor_sampler=test_data['neighbor_sampler']
+        )
+        # FIX: Move the entire model to the correct device after initialization
+        model.to(device)
+        
+        print("✅ IntegratedDyGMamba created successfully")
+        print(f"🔍 Model enhanced_node_feat_dim: {model.enhanced_node_feat_dim}")
+        
+        # Test forward pass
+        print("Testing forward pass...")
+        batch_size = 8
+        
+        # CRITICAL: Ensure node IDs are within valid range
+        num_nodes = test_data['node_features'].shape[0]  # Get actual number of nodes
+        print(f"🔧 DEBUG: Available nodes: {num_nodes}")
+        
+        # Get the device from the config and model
+        device = config['device']
+        print(f"🔧 DEBUG: Using device: {device}")
+        
+        # Generate valid node IDs within the available range
+        src_ids = torch.randint(0, num_nodes, (batch_size,)).to(device)
+        dst_ids = torch.randint(0, num_nodes, (batch_size,)).to(device)
+        timestamps = (torch.rand(batch_size) * 1000).to(device)  # Use random timestamps
+        edge_feats = test_data['edge_features'][:batch_size].to(device)
+        
+        print(f"🔧 DEBUG: Generated node IDs - src range: [{src_ids.min()}, {src_ids.max()}]")
+        print(f"🔧 DEBUG: Generated node IDs - dst range: [{dst_ids.min()}, {dst_ids.max()}]")
+        
+        print(f"🔍 Input shapes: src_ids={src_ids.shape}, dst_ids={dst_ids.shape}")
+        print(f"🔍 Input shapes: timestamps={timestamps.shape}, edge_feats={edge_feats.shape}")
+        print(f"🔍 Input devices: src_ids={src_ids.device}, timestamps={timestamps.device}, edge_feats={edge_feats.device}")
+        
+        with torch.no_grad():
+            output = model(src_ids, dst_ids, timestamps, edge_feats)
+        
+        print(f"✅ Forward pass successful: output shape {output.shape}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ IntegratedDyGMamba failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+def test_integrated_dygformer():
+    """Phase 3.2: Test IntegratedDyGFormer (Transformer-based sequence model)"""
+    print("="*60)
+    print("PHASE 3.2: TESTING INTEGRATED DYGFORMER")
+    print("="*60)
+    
+    try:
+        from models.integrated_dygformer import IntegratedDyGFormer
+        
+        # Get test data from previous phase
+        success, test_data = test_backbone_creation()
+        if not success:
+            print("❌ Cannot test DyGFormer without successful backbone creation")
+            return False
+            
+        config = {
+            'device': 'cuda' if torch.cuda.is_available() else 'cpu',  # Use CUDA for better performance
+            'embedding_module_type': 'all',  # Use all enhanced features for Transformer
+            'num_heads': 4,  # Multi-head attention
+            'num_layers': 2,
+            'dropout': 0.1,
+            'use_memory': False,  # DyGFormer uses Transformer for temporal modeling
+            'time_feat_dim': 100,  # Transformer hidden dimension
+            'output_dim': 64,
+            'model_dim': 64,
+            'spatial_dim': 32,
+            'temporal_dim': 32,
+            'spatiotemporal_dim': 128,
+            'num_neighbors': 20  # For neighbor sampling
+        }
+        
+        print("Creating IntegratedDyGFormer model...")
+        print(f"🔧 Config: time_feat_dim={config['time_feat_dim']}, num_heads={config['num_heads']}")
+        print("Debug torch cuda", torch.cuda.is_available())
+        
+        # Move test data to the correct device
+        device = config['device']
+        node_features = test_data['node_features'].to(device)
+        edge_features = test_data['edge_features'].to(device)
+        
+        model = IntegratedDyGFormer(
+            config=config,
+            node_raw_features=node_features,
+            edge_raw_features=edge_features,
+            neighbor_sampler=test_data['neighbor_sampler']
+        )
+        # Move the entire model to the correct device after initialization
+        model.to(device)
+        
+        print("✅ IntegratedDyGFormer created successfully")
+        print(f"🔍 Model enhanced_node_feat_dim: {model.enhanced_node_feat_dim}")
+        
+        # Test forward pass
+        print("Testing forward pass...")
+        batch_size = 8
+        
+        # CRITICAL: Ensure node IDs are within valid range
+        num_nodes = test_data['node_features'].shape[0]  # Get actual number of nodes
+        print(f"🔧 DEBUG: Available nodes: {num_nodes}")
+        
+        # Get the device from the config and model
+        device = config['device']
+        print(f"🔧 DEBUG: Using device: {device}")
+        
+        # Generate valid node IDs within the available range
+        src_ids = torch.randint(0, num_nodes, (batch_size,)).to(device)
+        dst_ids = torch.randint(0, num_nodes, (batch_size,)).to(device)
+        timestamps = (torch.rand(batch_size) * 1000).to(device)  # Use random timestamps
+        
+        print(f"🔧 DEBUG: Generated node IDs - src range: [{src_ids.min()}, {src_ids.max()}]")
+        print(f"🔧 DEBUG: Generated node IDs - dst range: [{dst_ids.min()}, {dst_ids.max()}]")
+        
+        print(f"🔍 Input shapes: src_ids={src_ids.shape}, dst_ids={dst_ids.shape}")
+        print(f"🔍 Input shapes: timestamps={timestamps.shape}")
+        print(f"🔍 Input devices: src_ids={src_ids.device}, timestamps={timestamps.device}")
+        
+        with torch.no_grad():
+            # DyGFormer forward method has different signature - no edge_features parameter
+            output = model(src_ids, dst_ids, timestamps, num_neighbors=20)
+        
+        print(f"✅ Forward pass successful: output shape {output.shape}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ IntegratedDyGFormer failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+def test_integrated_cawn():
+    """Phase 3.4: Test IntegratedCAWN (Multi-hop random walk model)"""
+    print("="*60)
+    print("PHASE 3.4: TESTING INTEGRATED CAWN")
+    print("="*60)
+    
+    try:
+        from models.integrated_cawn import IntegratedCAWN
+        
+        # Get test data from previous phase
+        success, test_data = test_backbone_creation()
+        if not success:
+            print("❌ Cannot proceed without backbone test data")
+            return False
+        
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        print(f"🔧 Using device: {device}")
+        
+        config = {
+            'device': device,
+            'embedding_module_type': 'all',  # Use all types of embeddings
+            'num_heads': 4,
+            'num_layers': 2,
+            'dropout': 0.1,
+            'use_memory': False,  # CAWN doesn't use memory
+            'time_feat_dim': 100,
+            'output_dim': 64,
+            'model_dim': 64,
+            'spatial_dim': 32,
+            'temporal_dim': 32,
+            'spatiotemporal_dim': 128,
+            'position_feat_dim': 64,  # CAWN-specific
+            'walk_length': 2,  # CAWN-specific
+            'num_walk_heads': 8,  # CAWN-specific
+            'num_neighbors': 10  # Smaller for testing
+        }
+        
+        # Move test data to the correct device
+        node_features = test_data['node_features'].to(device)
+        edge_features = test_data['edge_features'].to(device)
+        
+        # Create model with proper device handling
+        print("Creating IntegratedCAWN model...")
+        model = IntegratedCAWN(
+            config=config,
+            node_raw_features=node_features,
+            edge_raw_features=edge_features,
+            neighbor_sampler=test_data['neighbor_sampler']
+        )
+        
+        model = model.to(device)
+        print("✅ IntegratedCAWN created successfully")
+        print(f"🔍 Model enhanced_node_feat_dim: {model.enhanced_node_feat_dim}")
+        
+        # Test forward pass
+        print("Testing CAWN temporal embeddings...")
+        batch_size = 4  # Small batch for random walk testing
+        num_nodes = test_data['node_features'].shape[0]
+        
+        # Generate random node IDs and timestamps
+        src_ids = torch.randint(0, num_nodes, (batch_size,)).to(device)
+        dst_ids = torch.randint(0, num_nodes, (batch_size,)).to(device)
+        timestamps = (torch.rand(batch_size) * 1000).to(device)
+        
+        print(f"🔧 DEBUG: Generated node IDs - src range: [{src_ids.min()}, {src_ids.max()}]")
+        print(f"🔧 DEBUG: Generated node IDs - dst range: [{dst_ids.min()}, {dst_ids.max()}]")
+        
+        print(f"🔍 Input shapes: src_ids={src_ids.shape}, dst_ids={dst_ids.shape}")
+        print(f"🔍 Input shapes: timestamps={timestamps.shape}")
+        print(f"🔍 Input devices: src_ids={src_ids.device}, timestamps={timestamps.device}")
+        
+        with torch.no_grad():
+            # Test src embeddings
+            print("🔧 Testing source node temporal embeddings...")
+            src_embeddings = model._compute_temporal_embeddings(
+                node_ids=src_ids, 
+                timestamps=timestamps,
+                num_neighbors=config['num_neighbors']
+            )
+            
+            print("🔧 Testing destination node temporal embeddings...")
+            dst_embeddings = model._compute_temporal_embeddings(
+                node_ids=dst_ids, 
+                timestamps=timestamps,
+                num_neighbors=config['num_neighbors']
+            )
+        
+        print(f"✅ CAWN temporal embeddings successful:")
+        print(f"  Source embeddings shape: {src_embeddings.shape}")
+        print(f"  Destination embeddings shape: {dst_embeddings.shape}")
+        
+        # Test that shapes are correct
+        expected_output_dim = test_data['node_features'].shape[1]
+        assert src_embeddings.shape == (batch_size, expected_output_dim), \
+            f"Source embeddings shape mismatch: {src_embeddings.shape} vs expected {(batch_size, expected_output_dim)}"
+        assert dst_embeddings.shape == (batch_size, expected_output_dim), \
+            f"Destination embeddings shape mismatch: {dst_embeddings.shape} vs expected {(batch_size, expected_output_dim)}"
+        
+        print(f"✅ Shape validation passed - Output dimension: {expected_output_dim}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ IntegratedCAWN failed: {e}")
+        traceback.print_exc()
+        return False
+
+
+def test_integrated_graphmixer():
+    """Phase 3.3: Test IntegratedGraphMixer (MLP-Mixer based model)"""
+    print("="*60)
+    print("PHASE 3.3: TESTING INTEGRATED GRAPHMIXER")
+    print("="*60)
+    
+    try:
+        from models.integrated_graphmixer import IntegratedGraphMixer
+        
+        # Get test data from previous phase
+        success, test_data = test_backbone_creation()
+        if not success:
+            print("❌ Cannot test GraphMixer without successful backbone creation")
+            return False
+        
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        print(f"🔧 Using device: {device}")
+        
+        config = {
+            'device': device,
+            'embedding_module_type': 'all',  # Use all enhanced features for GraphMixer
+            'num_heads': 4,
+            'num_layers': 2,
+            'dropout': 0.1,
+            'use_memory': False,  # GraphMixer doesn't use memory
+            'time_feat_dim': 100,
+            'output_dim': 64,
+            'model_dim': 64,
+            'spatial_dim': 32,
+            'temporal_dim': 32,
+            'spatiotemporal_dim': 128,
+            # GraphMixer-specific config
+            'num_tokens': 20,
+            'token_dim_expansion_factor': 0.5,
+            'channel_dim_expansion_factor': 4.0
+        }
+        
+        # Move test data to the correct device
+        node_features = test_data['node_features'].to(device)
+        edge_features = test_data['edge_features'].to(device)
+        
+        # Create model with proper device handling
+        print("Creating IntegratedGraphMixer model...")
+        model = IntegratedGraphMixer(
+            config=config,
+            node_raw_features=node_features,
+            edge_raw_features=edge_features,
+            neighbor_sampler=test_data['neighbor_sampler']
+        )
+        
+        model = model.to(device)
+        print("✅ IntegratedGraphMixer created successfully")
+        print(f"🔍 Model enhanced_node_feat_dim: {model.enhanced_node_feat_dim}")
+        
+        # Test forward pass
+        print("Testing forward pass...")
+        batch_size = 8
+        num_nodes = test_data['node_features'].shape[0]
+        
+        # Generate random node IDs and timestamps
+        src_ids = torch.randint(0, num_nodes, (batch_size,)).to(device)
+        dst_ids = torch.randint(0, num_nodes, (batch_size,)).to(device)
+        timestamps = (torch.rand(batch_size) * 1000).to(device)
+        
+        print(f"🔧 DEBUG: Generated node IDs - src range: [{src_ids.min()}, {src_ids.max()}]")
+        print(f"🔧 DEBUG: Generated node IDs - dst range: [{dst_ids.min()}, {dst_ids.max()}]")
+        
+        print(f"🔍 Input shapes: src_ids={src_ids.shape}, dst_ids={dst_ids.shape}")
+        print(f"🔍 Input shapes: timestamps={timestamps.shape}")
+        print(f"🔍 Input devices: src_ids={src_ids.device}, timestamps={timestamps.device}")
+        
+        with torch.no_grad():
+            # Use the GraphMixer-specific method to compute embeddings
+            src_embeddings, dst_embeddings = model.compute_src_dst_node_temporal_embeddings(
+                src_node_ids=src_ids.cpu().numpy(),  # GraphMixer expects numpy arrays
+                dst_node_ids=dst_ids.cpu().numpy(),
+                node_interact_times=timestamps.cpu().numpy(),
+                num_neighbors=20,
+                time_gap=2000  # GraphMixer-specific parameter
+            )
+        
+        print(f"✅ GraphMixer temporal embeddings successful:")
+        print(f"  Source embeddings shape: {src_embeddings.shape}")
+        print(f"  Destination embeddings shape: {dst_embeddings.shape}")
+        
+        # Test that shapes are correct
+        expected_output_dim = test_data['node_features'].shape[1]
+        assert src_embeddings.shape == (batch_size, expected_output_dim), \
+            f"Source embeddings shape mismatch: {src_embeddings.shape} vs expected {(batch_size, expected_output_dim)}"
+        assert dst_embeddings.shape == (batch_size, expected_output_dim), \
+            f"Destination embeddings shape mismatch: {dst_embeddings.shape} vs expected {(batch_size, expected_output_dim)}"
+        
+        print(f"✅ Shape validation passed - Output dimension: {expected_output_dim}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ IntegratedGraphMixer failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
 def test_integrated_jodie():
     """Phase 2.2: Test IntegratedJODIE (Memory-based model)"""
     print("="*60)
@@ -442,7 +902,13 @@ def run_step_by_step_debug():
     results['integrated_tgat'] = test_integrated_tgat()
     results['integrated_jodie'] = test_integrated_jodie()
     results['integrated_tgn'] = test_integrated_tgn()
-    results['integrated_jodie'] = test_integrated_jodie()  # NEW: Test JODIE
+    results['integrated_dyrep'] = test_integrated_dyrep()  # NEW: Test DyRep (Phase 2.4)
+    
+    # Phase 3: Sequence Models
+    results['integrated_dygmamba'] = test_integrated_dygmamba()  # NEW: Test DyGMamba (Phase 3.1)
+    results['integrated_dygformer'] = test_integrated_dygformer()  # NEW: Test DyGFormer (Phase 3.2)
+    results['integrated_graphmixer'] = test_integrated_graphmixer()  # NEW: Test GraphMixer (Phase 3.3)
+    results['integrated_cawn'] = test_integrated_cawn()  # NEW: Test CAWN (Phase 3.4)
     
     # Summary
     print("\n" + "="*80)
